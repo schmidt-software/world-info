@@ -35,3 +35,6 @@ signing/*
 credentials/*
 !credentials/README.md
 # <<< agentlas local project state <<<
+
+# Local browser automation output
+.playwright-mcp/

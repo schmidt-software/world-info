@@ -1,0 +1,128 @@
+:root {
+  --bg: #02040a;
+  --panel-bg: rgba(10, 16, 28, 0.82);
+  --text: #e6edf7;
+  --muted: #8a97ab;
+  --border: rgba(255, 255, 255, 0.08);
+  --error: #ff6b6b;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+}
+
+#globe {
+  position: fixed;
+  inset: 0;
+}
+
+#panel {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  width: min(300px, calc(100vw - 32px));
+  padding: 16px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  backdrop-filter: blur(8px);
+}
+
+#panel h1 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.subtitle {
+  margin: 4px 0 12px;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+#layers {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+#layers li {
+  display: grid;
+  grid-template-columns: auto auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-top: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+#layers .swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+#layers .count {
+  font-variant-numeric: tabular-nums;
+}
+
+#layers .status {
+  grid-column: 3 / 5;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+#layers .status.error {
+  color: var(--error);
+}
+
+#clock {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+#tooltip {
+  position: fixed;
+  max-width: 280px;
+  padding: 8px 10px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.8rem;
+  pointer-events: none;
+}
+
+#tooltip strong {
+  display: block;
+  margin-bottom: 2px;
+}
+
+#tooltip span {
+  display: block;
+  color: var(--muted);
+}
+
+#credits {
+  position: fixed;
+  right: 16px;
+  bottom: 12px;
+  left: 16px;
+  color: var(--muted);
+  font-size: 0.7rem;
+  text-align: right;
+}
+
+#credits a {
+  color: inherit;
+}

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>World Info</title>
+  <meta name="description" content="A live globe of events happening on Earth right now.">
+  <link rel="stylesheet" href="styles.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
+        "topojson-client": "https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/+esm"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="globe"></div>
+
+  <aside id="panel">
+    <h1>World Info</h1>
+    <p class="subtitle">Events happening on Earth right now</p>
+    <ul id="layers"></ul>
+    <p id="clock"></p>
+  </aside>
+
+  <div id="tooltip" hidden></div>
+
+  <footer id="credits">
+    Data:
+    <a href="https://earthquake.usgs.gov/earthquakes/feed/" target="_blank" rel="noopener">USGS</a>,
+    <a href="https://eonet.gsfc.nasa.gov/" target="_blank" rel="noopener">NASA EONET</a>,
+    <a href="https://www.gdacs.org/" target="_blank" rel="noopener">GDACS</a>,
+    <a href="https://wheretheiss.at/" target="_blank" rel="noopener">wheretheiss.at</a>,
+    borders <a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener">Natural Earth</a>
+  </footer>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

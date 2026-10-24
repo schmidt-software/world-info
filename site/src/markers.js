@@ -8,6 +8,7 @@ const markerGeometry = new THREE.SphereGeometry(1, 12, 8);
 const tempMatrix = new THREE.Matrix4();
 const tempQuaternion = new THREE.Quaternion();
 const tempScale = new THREE.Vector3();
+const tempColor = new THREE.Color();
 
 // One layer per data source, drawn as a single InstancedMesh so that layers
 // with thousands of objects (ships, aircraft) stay cheap to render.
@@ -16,7 +17,8 @@ export class MarkerLayer {
   constructor(source) {
     this.source = source;
     this.group = new THREE.Group();
-    this.material = new THREE.MeshBasicMaterial({ color: source.color });
+    // White, because the per-instance color is multiplied with it.
+    this.material = new THREE.MeshBasicMaterial({ color: 0xffffff });
     this.events = [];
     this.positions = [];
     this.scales = [];
@@ -42,11 +44,14 @@ export class MarkerLayer {
     const now = Date.now();
     events.forEach((event, index) => {
       this.writeMatrix(index, this.scales[index]);
+      // Events may carry their own color, e.g. the awareness level of a warning.
+      this.mesh.setColorAt(index, tempColor.set(event.color ?? this.source.color));
       if (this.source.pulse !== false && now - event.time.getTime() < RECENT_MS) {
         this.pulsing.push({ index, phase: Math.random() * Math.PI * 2 });
       }
     });
     this.mesh.instanceMatrix.needsUpdate = true;
+    if (this.mesh.instanceColor) this.mesh.instanceColor.needsUpdate = true;
     this.mesh.computeBoundingSphere();
     this.group.add(this.mesh);
   }

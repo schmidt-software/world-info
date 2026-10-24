@@ -23,9 +23,30 @@
   <aside id="panel">
     <h1>World Info</h1>
     <p class="subtitle">Events happening on Earth right now</p>
+    <button id="show-events" class="text-button" type="button">List all events</button>
     <ul id="layers"></ul>
     <p id="clock"></p>
   </aside>
+
+  <section id="events-view" hidden aria-labelledby="events-title">
+    <header>
+      <h2 id="events-title">Events <span id="events-count"></span></h2>
+      <button id="close-events" class="text-button" type="button">Close</button>
+    </header>
+    <div class="events-controls">
+      <input id="events-search" type="search" placeholder="Search events" aria-label="Search events">
+      <select id="events-layer" aria-label="Filter by layer"></select>
+    </div>
+    <p id="events-note" hidden></p>
+    <div class="events-table">
+      <table>
+        <thead>
+          <tr><th>When</th><th>Layer</th><th>Event</th><th>Link</th></tr>
+        </thead>
+        <tbody id="events-body"></tbody>
+      </table>
+    </div>
+  </section>
 
   <div id="tooltip" hidden></div>
 

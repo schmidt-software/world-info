@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { EventList } from './eventlist.js';
 import { formatAge, formatTime } from './format.js';
 import { Globe } from './globe.js';
 import { MarkerLayer } from './markers.js';
@@ -11,6 +12,7 @@ const layerList = document.getElementById('layers');
 const tooltip = document.getElementById('tooltip');
 const clock = document.getElementById('clock');
 const snapshotCredits = document.getElementById('snapshot-credits');
+const eventList = new EventList({ getLayers: () => layers });
 
 sources.forEach(addLayer);
 loadSnapshotSources()
@@ -60,6 +62,7 @@ async function refresh(layer) {
     layer.ui.count.textContent = events.length;
     layer.ui.status.textContent = `Updated ${formatTime(result.updatedAt ?? new Date())}`;
     layer.ui.status.classList.remove('error');
+    eventList.refresh();
   } catch (error) {
     console.error(`Could not load ${layer.source.id}`, error);
     layer.ui.status.textContent = `Unavailable: ${error.message}`;
@@ -74,6 +77,7 @@ function upsertEvent(layer, event) {
   layer.setEvents(events);
   layer.ui.count.textContent = events.length;
   layer.ui.status.textContent = `Live update ${formatTime(new Date())}`;
+  eventList.refresh();
 }
 
 function createLayerRow(layer) {

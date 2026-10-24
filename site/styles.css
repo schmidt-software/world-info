@@ -5,6 +5,7 @@
   --muted: #8a97ab;
   --border: rgba(255, 255, 255, 0.08);
   --error: #ff6b6b;
+  --accent: #7fb4e8;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
@@ -133,4 +134,188 @@ body {
 
 #credits a {
   color: inherit;
+}
+
+.text-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.85rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+#show-events {
+  margin-bottom: 8px;
+}
+
+/* Event list: next to the layer panel on wide screens, full width on narrow ones. */
+#events-view {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  bottom: 40px;
+  left: calc(32px + min(300px, 100vw - 32px));
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  backdrop-filter: blur(8px);
+}
+
+#events-view[hidden] {
+  display: none;
+}
+
+#events-view header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+#events-view h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+#events-count {
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: normal;
+}
+
+.events-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0 8px;
+}
+
+.events-controls input,
+.events-controls select {
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+.events-controls input {
+  flex: 1 1 200px;
+}
+
+.events-controls select {
+  flex: 0 1 280px;
+  min-width: 0;
+}
+
+.events-controls option {
+  background: #0a101c;
+}
+
+#events-note {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.events-table {
+  flex: 1;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.events-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.events-table th {
+  position: sticky;
+  top: 0;
+  padding: 6px 8px;
+  background: #0a101c;
+  color: var(--muted);
+  font-weight: normal;
+  text-align: left;
+}
+
+.events-table td {
+  padding: 6px 8px;
+  border-top: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.events-table td.time,
+.events-table td.link {
+  white-space: nowrap;
+}
+
+.events-table td.layer {
+  color: var(--muted);
+}
+
+.events-table td.layer .swatch {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 50%;
+}
+
+.events-table td strong {
+  display: block;
+  font-weight: 600;
+}
+
+.events-table td .detail {
+  color: var(--muted);
+}
+
+/* Ship destinations such as "FIHEL<>FIMHQ<>SESTO" contain no spaces. */
+.events-table td:nth-child(3) {
+  overflow-wrap: anywhere;
+}
+
+.events-table a {
+  color: var(--accent);
+}
+
+.events-table td.link .short {
+  display: none;
+}
+
+/* Narrow screens: placed last so it overrides the rules above. */
+@media (max-width: 720px) {
+  #events-view {
+    left: 16px;
+  }
+
+  /* The layer filter names the layer already; the column costs too much width. */
+  .events-table th:nth-child(2),
+  .events-table td.layer {
+    display: none;
+  }
+
+  .events-table th,
+  .events-table td {
+    padding: 6px 4px;
+  }
+
+  .events-table td.link .host {
+    display: none;
+  }
+
+  .events-table td.link .short {
+    display: inline;
+  }
 }

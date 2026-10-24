@@ -38,6 +38,9 @@ const LEVELS = {
   4: { name: 'Red', color: 0xef4444, size: 1.5 },
 };
 
+// Maps CAP geocode names to the namespaces of region-centroids.json.
+const NAMESPACES = { EMMA_ID: 'EMMA_ID', NUTS1: 'NUTS', NUTS2: 'NUTS', NUTS3: 'NUTS', FIPS: 'FIPS' };
+
 const centroids = JSON.parse(await readFile(new URL('../data/region-centroids.json', import.meta.url), 'utf8'));
 
 export default {
@@ -108,12 +111,14 @@ function parameter(info, name) {
   return info.parameter?.find((entry) => entry.valueName === name)?.value;
 }
 
-function areaPosition(area) {
-  for (const { valueName, value } of area.geocode ?? []) {
-    const namespace = valueName === 'EMMA_ID' ? 'EMMA_ID' : valueName.startsWith('NUTS') ? 'NUTS' : null;
-    const centroid = namespace && centroids[namespace][value];
-    if (centroid) return { lat: centroid.lat, lon: centroid.lon };
-  }
+// An area may list several region codes, e.g. one per county it covers; it
+// is placed at the average of all codes with a known point.
+export function areaPosition(area) {
+  const known = (area.geocode ?? []).flatMap(({ valueName, value }) => {
+    const centroid = centroids[NAMESPACES[valueName]]?.[value];
+    return centroid ? [centroid] : [];
+  });
+  if (known.length) return average(known);
   // CAP polygons are strings of "lat,lon" pairs separated by spaces.
   const polygon = [area.polygon ?? []].flat()[0];
   if (!polygon) return null;

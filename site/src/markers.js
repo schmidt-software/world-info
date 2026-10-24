@@ -46,7 +46,10 @@ export class MarkerLayer {
       this.writeMatrix(index, this.scales[index]);
       // Events may carry their own color, e.g. the awareness level of a warning.
       this.mesh.setColorAt(index, tempColor.set(event.color ?? this.source.color));
-      if (this.source.pulse !== false && now - event.time.getTime() < RECENT_MS) {
+      // Only past events can be recent; events that start later (for example
+      // concerts within the next hour) must not pulse.
+      const age = now - event.time.getTime();
+      if (this.source.pulse !== false && age >= 0 && age < RECENT_MS) {
         this.pulsing.push({ index, phase: Math.random() * Math.PI * 2 });
       }
     });

@@ -8,10 +8,12 @@ import aisstream from './aisstream.mjs';
 import meteoalarm from './meteoalarm.mjs';
 import nasaFirms from './nasa-firms.mjs';
 import opensky from './opensky.mjs';
+import tomtom from './tomtom.mjs';
 
 export const sources = [
   meteoalarm,
   nasaFirms,
   opensky,
   aisstream,
+  tomtom,
 ];

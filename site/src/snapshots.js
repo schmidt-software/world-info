@@ -18,7 +18,7 @@ export async function loadSnapshotSources() {
     color: layer.color,
     pulse: layer.pulse,
     attribution: layer.attribution,
-    // The files change only on redeployment, roughly every 10 to 20 minutes.
+    // The files change only on redeployment, which can be hours apart.
     refreshMs: 5 * MINUTE,
     unavailable: layer.status === 'ok' ? null : describeStatus(layer),
     async fetch() {

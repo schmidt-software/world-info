@@ -88,7 +88,7 @@ globe.renderer.domElement.addEventListener('pointermove', (domEvent) => {
   raycaster.setFromCamera(pointer, globe.camera);
   const targets = [globe.globeMesh, ...layers.filter((layer) => layer.group.visible).map((layer) => layer.group)];
   const hit = raycaster.intersectObjects(targets, true).find((intersection) => intersection.object.isMesh);
-  hoveredEvent = hit?.object.userData.event ?? null;
+  hoveredEvent = hit?.object.userData.layer?.eventAt(hit.instanceId) ?? null;
 
   if (!hoveredEvent) {
     tooltip.hidden = true;

@@ -1,22 +1,20 @@
 import * as THREE from 'three';
 import { Globe } from './globe.js';
 import { MarkerLayer } from './markers.js';
+import { loadSnapshotSources } from './snapshots.js';
 import { sources } from './sources.js';
 
 const globe = new Globe(document.getElementById('globe'));
-const layers = sources.map((source) => new MarkerLayer(source));
+const layers = [];
 const layerList = document.getElementById('layers');
 const tooltip = document.getElementById('tooltip');
 const clock = document.getElementById('clock');
+const snapshotCredits = document.getElementById('snapshot-credits');
 
-for (const layer of layers) {
-  globe.scene.add(layer.group);
-  layer.ui = createLayerRow(layer);
-  globe.onFrame((time) => layer.animate(time));
-  refresh(layer);
-  setInterval(() => refresh(layer), layer.source.refreshMs);
-  layer.source.subscribe?.((event) => upsertEvent(layer, event));
-}
+sources.forEach(addLayer);
+loadSnapshotSources()
+  .then((snapshotSources) => snapshotSources.forEach(addLayer))
+  .catch((error) => console.error('Could not load snapshot layers', error));
 
 globe.loadBorders().catch((error) => console.error('Could not load country borders', error));
 globe.start();
@@ -24,13 +22,42 @@ globe.start();
 setInterval(updateClock, 1000);
 updateClock();
 
+function addLayer(source) {
+  const layer = new MarkerLayer(source);
+  layers.push(layer);
+  layer.ui = createLayerRow(layer);
+
+  // Snapshot layers without data (missing API key, failed fetch) stay listed
+  // so it is visible what could be shown, but are not loaded.
+  if (source.unavailable) {
+    layer.ui.row.classList.add('unavailable');
+    layer.ui.toggle.disabled = true;
+    layer.ui.toggle.checked = false;
+    layer.ui.count.textContent = '';
+    layer.ui.status.textContent = source.unavailable;
+    return;
+  }
+
+  if (source.attribution) {
+    snapshotCredits.textContent += `, ${source.attribution}`;
+  }
+  globe.scene.add(layer.group);
+  globe.onFrame((time) => layer.animate(time));
+  refresh(layer);
+  setInterval(() => refresh(layer), source.refreshMs);
+  source.subscribe?.((event) => upsertEvent(layer, event));
+}
+
 async function refresh(layer) {
   try {
-    const events = await layer.source.fetch();
+    // Sources return either the events or { events, updatedAt } when the data
+    // is older than the request (snapshots).
+    const result = await layer.source.fetch();
+    const events = Array.isArray(result) ? result : result.events;
     layer.setEvents(events);
     if (layer.source.id === 'iss' && events[0]) layer.extendTrail(events[0]);
     layer.ui.count.textContent = events.length;
-    layer.ui.status.textContent = `Updated ${formatTime(new Date())}`;
+    layer.ui.status.textContent = `Updated ${formatTime(result.updatedAt ?? new Date())}`;
     layer.ui.status.classList.remove('error');
   } catch (error) {
     console.error(`Could not load ${layer.source.id}`, error);
@@ -73,7 +100,7 @@ function createLayerRow(layer) {
 
   row.append(toggle, swatch, label, count, status);
   layerList.append(row);
-  return { count, status };
+  return { row, toggle, count, status };
 }
 
 function updateClock() {

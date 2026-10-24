@@ -6,8 +6,10 @@
 
 import meteoalarm from './meteoalarm.mjs';
 import nasaFirms from './nasa-firms.mjs';
+import opensky from './opensky.mjs';
 
 export const sources = [
   meteoalarm,
   nasaFirms,
+  opensky,
 ];

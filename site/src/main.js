@@ -15,6 +15,7 @@ for (const layer of layers) {
   globe.onFrame((time) => layer.animate(time));
   refresh(layer);
   setInterval(() => refresh(layer), layer.source.refreshMs);
+  layer.source.subscribe?.((event) => upsertEvent(layer, event));
 }
 
 globe.loadBorders().catch((error) => console.error('Could not load country borders', error));
@@ -36,6 +37,15 @@ async function refresh(layer) {
     layer.ui.status.textContent = `Unavailable: ${error.message}`;
     layer.ui.status.classList.add('error');
   }
+}
+
+// Pushed events replace an existing event with the same id (EMSC sends
+// updates when a magnitude is revised) or are added.
+function upsertEvent(layer, event) {
+  const events = [...layer.events.filter((existing) => existing.id !== event.id), event];
+  layer.setEvents(events);
+  layer.ui.count.textContent = events.length;
+  layer.ui.status.textContent = `Live update ${formatTime(new Date())}`;
 }
 
 function createLayerRow(layer) {

@@ -2,6 +2,13 @@ import * as THREE from 'three';
 
 export const EARTH_RADIUS_KM = 6371;
 
+// Europe including the Mediterranean, matching the EMSC focus region.
+export const EUROPE_BBOX = { minLat: 27, maxLat: 72, minLon: -32, maxLon: 48 };
+
+export function isInBbox(lat, lon, bbox) {
+  return lat >= bbox.minLat && lat <= bbox.maxLat && lon >= bbox.minLon && lon <= bbox.maxLon;
+}
+
 // Converts geographic coordinates to a point on a sphere centred at the origin:
 // north pole on +Y, (0°, 0°) on +X, 90° east on -Z.
 export function latLonToVector3(lat, lon, radius = 1) {

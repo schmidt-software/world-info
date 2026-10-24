@@ -33,6 +33,8 @@ body {
   width: min(300px, calc(100vw - 32px));
   max-height: calc(100vh - 64px);
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
   padding: 16px;
   background: var(--panel-bg);
   border: 1px solid var(--border);

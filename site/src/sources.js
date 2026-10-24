@@ -1,4 +1,5 @@
 import { districtEvents } from './dwd.js';
+import { eventUrl } from './eonet.js';
 import { EUROPE_BBOX, isInBbox } from './geo.js';
 
 // Every source returns events in one normalized shape:
@@ -171,13 +172,14 @@ export const naturalEvents = {
       const latest = event.geometry.at(-1);
       const position = geometryCenter(latest);
       if (!position) return [];
+      const time = new Date(latest.date);
       return [{
         id: event.id,
         ...position,
         title: event.title,
         detail: event.categories.map((category) => category.title).join(', '),
-        time: new Date(latest.date),
-        url: event.sources[0]?.url ?? event.link,
+        time,
+        url: eventUrl(event, time),
         size: 1,
       }];
     });

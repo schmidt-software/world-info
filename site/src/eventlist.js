@@ -57,8 +57,15 @@ export class EventList {
     return !this.view.hidden;
   }
 
-  open() {
+  // Opens the list; with a layer id it starts filtered to that layer and
+  // with an empty search, so all events of the layer are visible.
+  open(layerId) {
     this.view.hidden = false;
+    if (layerId) {
+      this.search.value = '';
+      this.render();
+      this.layerSelect.value = layerId;
+    }
     this.render();
     this.search.focus();
   }
@@ -98,13 +105,14 @@ export class EventList {
     this.note.textContent = `Showing the newest ${MAX_ROWS} events. Search or pick a layer to see others.`;
   }
 
-  // Options follow the order of the layer panel and list only layers that
-  // currently have events.
+  // Options follow the order of the layer panel. Layers without data
+  // (missing API key) are left out; empty layers stay, so opening the list
+  // from such a layer shows that it has no events right now.
   renderLayerOptions(rows) {
     const selected = this.layerSelect.value;
-    const counts = new Map(this.getLayers().map((layer) => [layer.source, 0]));
+    const available = this.getLayers().filter((layer) => !layer.source.unavailable);
+    const counts = new Map(available.map((layer) => [layer.source, 0]));
     for (const { layer } of rows) counts.set(layer, counts.get(layer) + 1);
-    for (const [layer, count] of counts) if (!count) counts.delete(layer);
     const options = [...counts.entries()].map(([layer, count]) => {
       const option = document.createElement('option');
       option.value = layer.id;

@@ -70,6 +70,28 @@ body {
   font-size: 0.9rem;
 }
 
+#layers li.opens-list {
+  cursor: pointer;
+}
+
+#layers li.opens-list:hover .layer-name {
+  text-decoration: underline;
+}
+
+#layers .layer-name {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: inherit;
+}
+
+#layers li.opens-list input {
+  cursor: default;
+}
+
 #layers .swatch {
   width: 10px;
   height: 10px;

@@ -39,7 +39,25 @@ python3 -m http.server 8000 --directory site
 ```
 
 Then open <http://localhost:8000>. API keys for snapshot sources go into a
-git-ignored `.env` file in the repository root.
+git-ignored `.env` file in the repository root; `.env.example` lists them.
+
+Parser tests for the snapshot sources:
+
+```bash
+node --test 'scripts/test/*.test.mjs'
+```
+
+## API keys
+
+Every key is optional. Register with the provider, then store the key as a
+repository secret under the name from `.env.example`, for example:
+
+```bash
+gh secret set TOMTOM_API_KEY
+```
+
+The next scheduled deployment picks it up. Keys never reach the published
+site: only the fetched data is deployed.
 
 ## Deployment
 
@@ -68,6 +86,7 @@ site/
 scripts/
   fetch-data.mjs             runs all snapshot sources, writes site/data/
   sources/                   one module per snapshot source
+  test/                      parser tests (node --test)
   build-region-centroids.mjs builds data/region-centroids.json
   data/region-centroids.json region code to point lookup for MeteoAlarm
 ```
@@ -94,6 +113,29 @@ All sources were checked on 2026-10-24.
 | Layer | Source | Endpoint | Key | License / terms |
 |---|---|---|---|---|
 | Weather warnings Europe | [MeteoAlarm](https://feeds.meteoalarm.org/) (EUMETNET) | `api/v1/warnings/feeds-<country>` | none, but no CORS | CC BY 4.0 |
+| Active fires Europe | [NASA FIRMS](https://firms.modaps.eosdis.nasa.gov/api/area/) | `api/area/csv` VIIRS S-NPP and NOAA-20, 24 h | `NASA_FIRMS_MAP_KEY` | NASA open data, attribution requested |
+| Aircraft over Europe | [OpenSky Network](https://openskynetwork.github.io/opensky-api/rest.html) | `api/states/all` with OAuth2 client credentials | `OPENSKY_CLIENT_ID`, `OPENSKY_CLIENT_SECRET` | Non-commercial use, see OpenSky terms |
+| Ships around Europe | [aisstream.io](https://aisstream.io/documentation) | WebSocket `v0/stream`, listened to for 45 s per run | `AISSTREAM_API_KEY` | Free; browser connections not allowed |
+| Traffic incidents | [TomTom Traffic API](https://docs.tomtom.com/traffic-api/documentation/tomtom-maps/traffic-incidents/incident-details) | `traffic/services/5/incidentDetails`, 20 city boxes, every 20 min | `TOMTOM_API_KEY` | Free tier, 2,500 requests per day |
+| Concerts and events | [Ticketmaster Discovery API](https://developer.ticketmaster.com/products-and-docs/apis/discovery-api/v2/) | `discovery/v2/events`, 17 countries, every 20 min | `TICKETMASTER_API_KEY` | 5,000 requests per day |
+| Poor air quality | [OpenAQ v3](https://docs.openaq.org/) | `v3/parameters/2/latest` (PM2.5), every 30 min | `OPENAQ_API_KEY` | Data licenses vary by provider |
+| Electricity load | [ENTSO-E Transparency Platform](https://transparency.entsoe.eu/) | `api?documentType=A65` per bidding zone, every 30 min | `ENTSOE_SECURITY_TOKEN` | Free reuse with attribution |
+| Live webcams | [Windy Webcams API v3](https://api.windy.com/webcams/docs) | `webcams/api/v3/webcams`, every 60 min | `WINDY_WEBCAMS_API_KEY` | Free tier |
+
+Notes on the key-based layers:
+
+- They were verified up to authentication (each rejects an invalid key with a
+  clear error) and their parsers are tested against documented payloads; the
+  first run with real keys is still outstanding.
+- Request intervals keep every source within its free quota; until an interval
+  has passed, the previously published data is deployed again.
+- OpenSky aircraft are shown only in flight. OpenSky may restrict requests from
+  cloud networks; if the layer stays unavailable on GitHub, this is the likely
+  cause.
+- The Windy bbox parameter order (north, east, south, west) is taken from the
+  Windy map cluster API and still needs to be confirmed with a real key.
+- OpenAQ shows only stations at or above the EU air quality index level
+  "poor" (25 µg/m³ PM2.5), so the layer marks notable pollution.
 
 MeteoAlarm identifies warning areas by region code. The lookup in
 `scripts/data/region-centroids.json` maps them to points, built from the

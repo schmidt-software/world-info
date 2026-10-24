@@ -4,6 +4,8 @@ A 3D globe that shows events happening on Earth right now, each at its location.
 Built with [Three.js](https://threejs.org/) as a static site for GitHub Pages: no
 build step and no backend.
 
+Live: <https://schmidt-software.github.io/world-info/>
+
 ## Features
 
 - Globe with coastlines and country borders and a live day/night terminator

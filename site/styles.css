@@ -87,6 +87,10 @@ body {
   color: var(--error);
 }
 
+#layers li.unavailable {
+  opacity: 0.5;
+}
+
 #clock {
   margin: 12px 0 0;
   color: var(--muted);

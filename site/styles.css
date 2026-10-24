@@ -255,6 +255,14 @@ body {
   vertical-align: top;
 }
 
+.events-table tbody tr:has(a) {
+  cursor: pointer;
+}
+
+.events-table tbody tr:has(a):hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
 .events-table td.time,
 .events-table td.link {
   white-space: nowrap;

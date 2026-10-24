@@ -47,6 +47,7 @@ export class EventList {
     document.getElementById('close-events').addEventListener('click', () => this.close());
     this.search.addEventListener('input', () => this.render());
     this.layerSelect.addEventListener('change', () => this.render());
+    this.body.addEventListener('click', (domEvent) => this.openRowSource(domEvent));
     document.addEventListener('keydown', (domEvent) => {
       if (domEvent.key === 'Escape' && !this.view.hidden) this.close();
     });
@@ -65,6 +66,16 @@ export class EventList {
   close() {
     this.view.hidden = true;
     document.getElementById('show-events').focus();
+  }
+
+  // A click anywhere on a row opens its source, like the link in the last
+  // column. Clicks on the link itself are left to the browser, and so is a
+  // click that ends a text selection.
+  openRowSource(domEvent) {
+    if (domEvent.target.closest('a')) return;
+    if (window.getSelection()?.toString()) return;
+    const link = domEvent.target.closest('tr')?.querySelector('a[href]');
+    if (link) window.open(link.href, '_blank', 'noopener');
   }
 
   // Called after layers refresh, so an open list does not go stale.

@@ -1,3 +1,4 @@
+import { districtEvents } from './dwd.js';
 import { EUROPE_BBOX, isInBbox } from './geo.js';
 
 // Every source returns events in one normalized shape:
@@ -94,34 +95,30 @@ function quakeSize(mag) {
   return 0.4 + mag * 0.25;
 }
 
-const DWD_SEVERITY_SIZES = { Minor: 0.6, Moderate: 0.9, Severe: 1.4, Extreme: 2 };
-
 export const germanWeatherWarnings = {
   id: 'dwd-warnings',
   label: 'Weather warnings Germany (DWD)',
   color: 0xa78bfa,
   refreshMs: 10 * MINUTE,
+  pulse: false,
   async fetch() {
-    // Without geometry the response shrinks from about 900 KB to 120 KB; the
-    // per-feature bbox is enough to place a marker. CRS:84 fixes the axis
-    // order to lon/lat, EPSG:4326 under WFS 2.0 would be lat/lon.
-    const data = await fetchJson('https://maps.dwd.de/geoserver/dwd/ows?service=WFS&version=2.0.0'
-      + '&request=GetFeature&typeName=dwd:Warnungen_Gemeinden_vereinigt&outputFormat=application/json'
-      + '&srsName=CRS:84&propertyName=EVENT,SEVERITY,HEADLINE,ONSET,EXPIRES,IDENTIFIER');
-    return data.features.map((warning, index) => {
-      const [minLon, minLat, maxLon, maxLat] = warning.bbox;
-      const p = warning.properties;
-      return {
-        id: `${p.IDENTIFIER}-${index}`,
-        lat: (minLat + maxLat) / 2,
-        lon: (minLon + maxLon) / 2,
-        title: p.HEADLINE,
-        detail: `${p.SEVERITY}, until ${new Date(p.EXPIRES).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })}`,
-        time: new Date(p.ONSET),
-        url: 'https://www.dwd.de/DE/wetter/warnungen_gemeinden/warnWetter_node.html',
-        size: DWD_SEVERITY_SIZES[p.SEVERITY] ?? 0.8,
-      };
+    // The server filters for warnings active right now; the feed also holds
+    // warnings that start later. Without geometry the response stays near
+    // 100 KB, and the per-feature bbox is enough to place a marker. CRS:84
+    // fixes the axis order to lon/lat, EPSG:4326 under WFS 2.0 would be lat/lon.
+    const now = new Date().toISOString().slice(0, 19) + 'Z';
+    const params = new URLSearchParams({
+      service: 'WFS',
+      version: '2.0.0',
+      request: 'GetFeature',
+      typeName: 'dwd:Warnungen_Landkreise',
+      outputFormat: 'application/json',
+      srsName: 'CRS:84',
+      propertyName: 'EVENT,SEVERITY,ONSET,EXPIRES,AREADESC,GC_STATE,GC_WARNCELLID',
+      CQL_FILTER: `ONSET <= '${now}' AND EXPIRES > '${now}'`,
     });
+    const data = await fetchJson(`https://maps.dwd.de/geoserver/dwd/ows?${params}`);
+    return districtEvents(data.features);
   },
 };
 

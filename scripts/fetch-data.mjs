@@ -12,7 +12,10 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { sources } from './sources/index.mjs';
 
 const OUTPUT_DIR = new URL('../site/data/', import.meta.url);
-const MAX_STALE_MINUTES = 120;
+// GitHub runs the 10-minute schedule only every few hours for this repository
+// (scheduled runs are delayed or dropped under load), so the last good data
+// must survive longer than one gap between runs to bridge a failed fetch.
+const MAX_STALE_MINUTES = 6 * 60;
 const inGitHubActions = Boolean(process.env.GITHUB_ACTIONS);
 
 const selectedIds = process.argv.slice(2);

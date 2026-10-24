@@ -15,7 +15,8 @@ Live: <https://schmidt-software.github.io/world-info/>
 - Events from the last hour pulse
 - Hover a marker for details, click it to open the source page
 - "List all events" in the panel opens a searchable list of every loaded event,
-  filterable by layer, with a link to each event's source page
+  filterable by layer, with a link to each event's source page; clicking a
+  layer in the panel opens the list filtered to that layer
 - Layers can be toggled; every layer refreshes on its own interval
 
 ## How data gets to the page

@@ -8,10 +8,12 @@
 // Locally, with keys in a git-ignored .env file:
 //   node --env-file-if-exists=.env scripts/fetch-data.mjs [source-id ...]
 
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mergeLayers } from './manifest.mjs';
 import { sources } from './sources/index.mjs';
 
 const OUTPUT_DIR = new URL('../site/data/', import.meta.url);
+const MANIFEST = new URL('manifest.json', OUTPUT_DIR);
 // GitHub runs the 10-minute schedule only every few hours for this repository
 // (scheduled runs are delayed or dropped under load), so the last good data
 // must survive longer than one gap between runs to bridge a failed fetch.
@@ -26,8 +28,12 @@ const selected = selectedIds.length
 await mkdir(OUTPUT_DIR, { recursive: true });
 
 const layers = await Promise.all(selected.map(runSource));
-const manifest = { generatedAt: new Date().toISOString(), layers };
-await writeFile(new URL('manifest.json', OUTPUT_DIR), `${JSON.stringify(manifest, null, 1)}\n`);
+const previous = await readFile(MANIFEST, 'utf8').then(JSON.parse, () => ({ layers: [] }));
+const manifest = {
+  generatedAt: new Date().toISOString(),
+  layers: mergeLayers(sources.map((source) => source.id), layers, previous.layers),
+};
+await writeFile(MANIFEST, `${JSON.stringify(manifest, null, 1)}\n`);
 
 for (const layer of layers) {
   const summary = layer.status === 'ok'

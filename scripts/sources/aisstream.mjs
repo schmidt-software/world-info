@@ -82,7 +82,7 @@ export function collectShips(messages) {
       title: meta.ShipName?.trim() || `MMSI ${mmsi}`,
       detail: typeof report.Sog === 'number' ? `${report.Sog.toFixed(1)} kn` : '',
       time,
-      url: `https://www.marinetraffic.com/en/ais/details/ships/mmsi:${mmsi}`,
+      url: `https://www.myshiptracking.com/vessels/mmsi-${mmsi}`,
       size: 0.35,
     });
   }

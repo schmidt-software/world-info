@@ -19,6 +19,7 @@ test('aisstream: keeps the latest report per ship and skips unavailable position
   assert.equal(ships.length, 1);
   assert.equal(ships[0].lat, 54.1);
   assert.equal(ships[0].title, 'EXAMPLE');
+  assert.equal(ships[0].url, 'https://www.myshiptracking.com/vessels/mmsi-211000001');
   assert.equal(ships[0].time.toISOString(), '2026-10-24T00:01:00.000Z');
 });
 

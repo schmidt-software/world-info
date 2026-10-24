@@ -156,7 +156,7 @@ export const balticShips = {
           vessel?.destination?.trim() && `to ${vessel.destination.trim()}`,
         ].filter(Boolean).join(', '),
         time: new Date(p.timestampExternal),
-        url: `https://www.marinetraffic.com/en/ais/details/ships/mmsi:${p.mmsi}`,
+        url: `https://www.myshiptracking.com/vessels/mmsi-${p.mmsi}`,
         size: 0.35,
       }];
     });

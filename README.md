@@ -103,7 +103,7 @@ All sources were checked on 2026-10-24.
 |---|---|---|---|---|
 | Earthquakes Europe | [EMSC Seismic Portal](https://www.seismicportal.eu/webservices.html) | FDSN `event/1/query` plus WebSocket `standing_order/websocket` | live, REST every 15 min | CC BY 4.0 |
 | Earthquakes outside Europe | [USGS Earthquake Hazards Program](https://earthquake.usgs.gov/earthquakes/feed/v1.0/geojson.php) | `summary/2.5_day.geojson` | 5 min | Public domain |
-| Weather warnings Germany | [DWD GeoServer](https://maps.dwd.de/) | WFS `dwd:Warnungen_Gemeinden_vereinigt` | 10 min | CC BY 4.0, see [dwd.de/copyright](https://www.dwd.de/copyright) |
+| Weather warnings Germany | [DWD GeoServer](https://maps.dwd.de/) | WFS `dwd:Warnungen_Landkreise`, active warnings only | 10 min | CC BY 4.0, see [dwd.de/copyright](https://www.dwd.de/copyright) |
 | Ships Baltic Sea | [Digitraffic](https://www.digitraffic.fi/en/marine-traffic/) (Fintraffic) | `ais/v1/locations`, `ais/v1/vessels` | 2 min | CC BY 4.0 |
 | Natural events | [NASA EONET v3](https://eonet.gsfc.nasa.gov/docs/v3) | `events?status=open&days=30` | 15 min | Public domain |
 | Disaster alerts | [GDACS](https://www.gdacs.org/) | `gdacsapi/api/events/geteventlist/SEARCH` | 15 min | Attribution required, see the GDACS terms of use |

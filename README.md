@@ -2,33 +2,55 @@
 
 A 3D globe that shows events happening on Earth right now, each at its location.
 Built with [Three.js](https://threejs.org/) as a static site for GitHub Pages: no
-build step, no backend, no API keys.
+build step and no backend.
 
 ## Features
 
 - Globe with coastlines and country borders and a live day/night terminator
 - Earthquakes (Europe live via EMSC, rest of the world via USGS), weather
-  warnings for Germany, ships in the Baltic Sea, natural events, disaster
-  alerts and the live ISS position
+  warnings for Germany and the rest of Europe, ships in the Baltic Sea, natural
+  events, disaster alerts and the live ISS position
 - Events from the last hour pulse
 - Hover a marker for details, click it to open the source page
 - Layers can be toggled; every layer refreshes on its own interval
 
+## How data gets to the page
+
+There are two kinds of layers:
+
+- **Browser layers** (`site/src/sources.js`) are queried directly by the page.
+  This only works for sources that are free, need no key and send CORS headers
+  that allow any origin.
+- **Snapshot layers** (`scripts/sources/`) are fetched by
+  `scripts/fetch-data.mjs` during deployment and written to `site/data/` as
+  JSON. This covers sources that need an API key, which must never be shipped
+  to a public page, and sources without CORS headers. The page discovers them
+  through `site/data/manifest.json`. A snapshot source whose key is missing is
+  listed in the panel as not configured.
+
 ## Run locally
 
-ES modules need to be served over HTTP, opening `index.html` from disk does not work:
+ES modules need to be served over HTTP, opening `index.html` from disk does not work.
+Fetch the snapshot layers first (optional; without them only the browser layers show):
 
 ```bash
+node --env-file-if-exists=.env scripts/fetch-data.mjs
 python3 -m http.server 8000 --directory site
 ```
 
-Then open <http://localhost:8000>.
+Then open <http://localhost:8000>. API keys for snapshot sources go into a
+git-ignored `.env` file in the repository root.
 
 ## Deployment
 
-`.github/workflows/pages.yml` publishes the `site/` folder on every push to `main`.
-GitHub Pages must be set to "GitHub Actions" once in the repository settings
-(Settings > Pages > Build and deployment > Source).
+`.github/workflows/pages.yml` fetches the snapshot data and publishes the `site/`
+folder on every push to `main` and every 10 minutes, so snapshot layers are at
+most about 10 to 20 minutes old (GitHub may delay scheduled runs). API keys are
+read from repository secrets. GitHub Pages must be set to "GitHub Actions" once
+in the repository settings (Settings > Pages > Build and deployment > Source).
+
+GitHub disables scheduled workflows after 60 days without repository activity;
+they can be re-enabled on the Actions tab.
 
 ## Project layout
 
@@ -39,16 +61,22 @@ site/
   src/
     main.js      wires layers, UI panel, tooltip and refresh timers
     globe.js     scene, camera, controls, globe shader, borders
-    markers.js   one marker layer per data source
-    sources.js   API clients, all normalized to one event shape
+    markers.js   one instanced marker layer per data source
+    sources.js   browser layers, all normalized to one event shape
+    snapshots.js snapshot layers listed in data/manifest.json
     geo.js       coordinate conversion and subsolar point
+scripts/
+  fetch-data.mjs             runs all snapshot sources, writes site/data/
+  sources/                   one module per snapshot source
+  build-region-centroids.mjs builds data/region-centroids.json
+  data/region-centroids.json region code to point lookup for MeteoAlarm
 ```
 
 ## Data sources
 
-Because the site runs entirely in the browser, a source is only usable if it is
-free, needs no key, and sends CORS headers that allow any origin. All sources
-were checked against these criteria on 2026-10-24.
+All sources were checked on 2026-10-24.
+
+### Browser layers
 
 | Layer | Source | Endpoint | Refresh | License / terms |
 |---|---|---|---|---|
@@ -60,6 +88,21 @@ were checked against these criteria on 2026-10-24.
 | Disaster alerts | [GDACS](https://www.gdacs.org/) | `gdacsapi/api/events/geteventlist/SEARCH` | 15 min | Attribution required, see the GDACS terms of use |
 | ISS position | [wheretheiss.at](https://wheretheiss.at/w/developer) | `v1/satellites/25544` | 5 s | Free, about 1 request per second |
 | Borders | [Natural Earth](https://www.naturalearthdata.com/) via [world-atlas](https://github.com/topojson/world-atlas) | `countries-110m.json` | once | Public domain |
+
+### Snapshot layers
+
+| Layer | Source | Endpoint | Key | License / terms |
+|---|---|---|---|---|
+| Weather warnings Europe | [MeteoAlarm](https://feeds.meteoalarm.org/) (EUMETNET) | `api/v1/warnings/feeds-<country>` | none, but no CORS | CC BY 4.0 |
+
+MeteoAlarm identifies warning areas by region code. The lookup in
+`scripts/data/region-centroids.json` maps them to points, built from the
+MeteoAlarm_Geocodes layer of [GeoSphere Austria](https://gis.geosphere.at/)
+(EMMA_ID codes) and the NUTS label points of
+[Eurostat GISCO](https://ec.europa.eu/eurostat/web/gisco) (© EuroGeographics
+for the administrative boundaries). Germany is skipped because the DWD layer
+covers it in more detail. Areas identified only by FIPS codes (Ireland) cannot
+be placed yet.
 
 ### Evaluated but not usable in the browser
 

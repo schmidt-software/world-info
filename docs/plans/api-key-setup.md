@@ -15,8 +15,9 @@ keys as GitHub repository secrets, and verify every layer with real data.
   missing is shown as "Not configured" in the panel. `.env.example` lists all
   variable names.
 - The deploy workflow (`.github/workflows/pages.yml`) already passes every
-  secret to the fetch step. It runs on every push to `main` and every 10
-  minutes, so a newly stored secret takes effect with the next run.
+  secret to the fetch step. It runs on every push to `main` and on a 10-minute
+  schedule, but GitHub runs the schedule only every few hours. After storing
+  secrets, trigger a run with `gh workflow run pages.yml` instead of waiting.
 
 ## Division of work
 

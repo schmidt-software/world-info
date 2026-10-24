@@ -64,9 +64,15 @@ site: only the fetched data is deployed.
 ## Deployment
 
 `.github/workflows/pages.yml` fetches the snapshot data and publishes the `site/`
-folder on every push to `main` and every 10 minutes, so snapshot layers are at
-most about 10 to 20 minutes old (GitHub may delay scheduled runs). API keys are
-read from repository secrets. GitHub Pages must be set to "GitHub Actions" once
+folder on every push to `main` and on a schedule of every 10 minutes. API keys
+are read from repository secrets.
+
+GitHub does not keep that schedule: scheduled runs are delayed or dropped when
+GitHub Actions is under load. For this repository they ran only every 2.5 to
+4.5 hours (checked on 2026-10-24). Snapshot layers can therefore be several
+hours old; the panel shows the real age of every layer. To refresh them right
+away, run `gh workflow run pages.yml`. If a source fails, its last published
+data is kept for up to 6 hours, which bridges a failed run. GitHub Pages must be set to "GitHub Actions" once
 in the repository settings (Settings > Pages > Build and deployment > Source).
 
 GitHub disables scheduled workflows after 60 days without repository activity;

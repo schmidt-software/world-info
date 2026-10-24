@@ -3,6 +3,8 @@ name: Deploy to GitHub Pages
 # Besides deploying code changes, the scheduled run refreshes the snapshot
 # layers: scripts/fetch-data.mjs fetches sources that need API keys or lack
 # CORS headers and writes their data into site/data/ before the upload.
+# GitHub delays or drops scheduled runs under load; in practice this
+# repository's schedule runs only every few hours.
 on:
   push:
     branches: [main]

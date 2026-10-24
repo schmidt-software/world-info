@@ -5,5 +5,9 @@
 // `minIntervalMinutes` spaces out requests for sources with daily quotas.
 
 import meteoalarm from './meteoalarm.mjs';
+import nasaFirms from './nasa-firms.mjs';
 
-export const sources = [meteoalarm];
+export const sources = [
+  meteoalarm,
+  nasaFirms,
+];

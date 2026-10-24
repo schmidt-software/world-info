@@ -16,6 +16,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working in this
 - Make atomic commits: one logical change per commit (a feature, a fix and a docs update are separate commits). Stage selectively when the working tree holds several concerns. Committing on a feature branch does not need prior approval; pushing and opening PRs follows the rules above.
 - Never rewrite published history (force push, rebase of pushed branches) without explicit approval.
 
+## Review before merge
+
+- The user reviews every pull request locally before it is merged. After opening a PR, check out its branch and serve the site on port 8123 in the background: `python3 -m http.server 8123 --bind 127.0.0.1 --directory site`, then tell the user it is ready at http://127.0.0.1:8123/.
+- Keep the server running until the user approves the merge; stop it only when asked.
+- If port 8123 is taken, report it instead of silently switching ports.
+
+## Open plans
+
+Plans that span sessions or machines live in `docs/plans/`. At the start of a session, check this list and remind the user of open plans that relate to the current task.
+
+- `docs/plans/api-key-setup.md`: register with the providers of the key-based snapshot layers, store the keys as repository secrets and verify every layer with real data. Status: open.
+
 ## Commit messages
 
 Use the conventional commit format for the subject line: `feat:`, `fix:`, `docs:`, `style:`, `test:`, `ci:`, `chore:`, `breaking:`.

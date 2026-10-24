@@ -5,6 +5,7 @@
 // `minIntervalMinutes` spaces out requests for sources with daily quotas.
 
 import aisstream from './aisstream.mjs';
+import entsoe from './entsoe.mjs';
 import meteoalarm from './meteoalarm.mjs';
 import nasaFirms from './nasa-firms.mjs';
 import openaq from './openaq.mjs';
@@ -20,4 +21,5 @@ export const sources = [
   tomtom,
   ticketmaster,
   openaq,
+  entsoe,
 ];

@@ -9,14 +9,14 @@ keys as GitHub repository secrets, and verify every layer with real data.
 
 ## Context
 
-- The key-based layers are implemented in PR #6 (`feature/key-sources`), which is
-  stacked on PR #5 (`feature/data-snapshot-workflow`) and PR #4
-  (`feature/europe-live-sources`). All three are marked WIP and not merged yet.
+- The key-based layers are implemented and merged to `main` (PRs #4 to #6,
+  2026-10-24). Only the registrations and the secrets are missing.
 - `scripts/fetch-data.mjs` runs every snapshot source; a source whose key is
-  missing is shown as "Not configured" in the panel. `.env.example` (in PR #6)
-  lists all variable names.
-- The deploy workflow reads keys from repository secrets only after PR #6 is
-  merged to `main`. Before that, test locally with a git-ignored `.env`.
+  missing is shown as "Not configured" in the panel. `.env.example` lists all
+  variable names.
+- The deploy workflow (`.github/workflows/pages.yml`) already passes every
+  secret to the fetch step. It runs on every push to `main` and every 10
+  minutes, so a newly stored secret takes effect with the next run.
 
 ## Division of work
 
@@ -73,14 +73,17 @@ TomTom and Ticketmaster have daily quotas that the source intervals respect.
 ## Verification (Claude)
 
 1. `gh secret list` shows the expected names (values are never readable).
-2. Before PR #6 is merged: on branch `feature/key-sources`, ask the user to put
-   the keys into a local `.env` (never commit it), run
-   `node --env-file-if-exists=.env scripts/fetch-data.mjs` and check that every
-   source reports `ok` with a plausible event count. Serve `site/` on port 8123
-   for the user's review.
-3. After PR #6 is merged: run the deploy workflow (`gh workflow run pages.yml`)
-   and check its log for `::warning` lines from the fetch step.
-4. Open points to settle with real data:
+2. Run the deploy workflow (`gh workflow run pages.yml`), wait for it, and
+   check the fetch step in its log: every configured source should report `ok`
+   with a plausible event count; failures appear as `::warning` lines.
+3. Check `https://schmidt-software.github.io/world-info/data/manifest.json`
+   and the live page: configured layers load, no console errors.
+4. Optional local check, for example while debugging a single source: the user
+   puts keys into a git-ignored `.env`, then
+   `node --env-file-if-exists=.env scripts/fetch-data.mjs <source-id>`.
+   Serve `site/` on port 8123 for the user's review. Never commit `.env`.
+5. Fixes found during verification go through a normal pull request.
+6. Open points to settle with real data:
    - Windy: the `bbox` parameter order (north, east, south, west) is unverified;
      fix it if the layer comes back empty or with a 400.
    - OpenSky may restrict requests from cloud networks such as GitHub Actions.
@@ -89,5 +92,5 @@ TomTom and Ticketmaster have daily quotas that the source intervals respect.
      headers).
    - aisstream.io: check that 45 seconds of listening yield a useful number of
      ships and that the data file stays reasonably small.
-5. Tick the checklist above, and set the status of this plan to done once all
+7. Tick the checklist above, and set the status of this plan to done once all
    layers work.

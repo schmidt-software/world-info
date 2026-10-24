@@ -9,16 +9,28 @@
 import { readFile } from 'node:fs/promises';
 import { average, fetchJson } from '../lib.mjs';
 
-// Germany is left out because the DWD layer shows the same warnings in more
-// detail. The other slugs mirror the country feeds on feeds.meteoalarm.org.
-const COUNTRIES = [
-  'andorra', 'austria', 'belgium', 'bosnia-herzegovina', 'bulgaria', 'croatia', 'cyprus',
-  'czechia', 'denmark', 'estonia', 'finland', 'france', 'greece', 'hungary', 'iceland',
-  'ireland', 'israel', 'italy', 'latvia', 'lithuania', 'luxembourg', 'malta', 'moldova',
-  'montenegro', 'netherlands', 'norway', 'poland', 'portugal', 'republic-of-north-macedonia',
-  'romania', 'serbia', 'slovakia', 'slovenia', 'spain', 'sweden', 'switzerland', 'ukraine',
-  'united-kingdom',
-];
+// Country feeds on feeds.meteoalarm.org and the country codes MeteoAlarm uses
+// for its own pages (ISO codes, except UK for the United Kingdom). Germany is
+// left out because the DWD layer shows the same warnings in more detail.
+export const COUNTRIES = {
+  andorra: 'AD', austria: 'AT', belgium: 'BE', 'bosnia-herzegovina': 'BA', bulgaria: 'BG',
+  croatia: 'HR', cyprus: 'CY', czechia: 'CZ', denmark: 'DK', estonia: 'EE', finland: 'FI',
+  france: 'FR', greece: 'GR', hungary: 'HU', iceland: 'IS', ireland: 'IE', israel: 'IL',
+  italy: 'IT', latvia: 'LV', lithuania: 'LT', luxembourg: 'LU', malta: 'MT', moldova: 'MD',
+  montenegro: 'ME', netherlands: 'NL', norway: 'NO', poland: 'PL', portugal: 'PT',
+  'republic-of-north-macedonia': 'MK', romania: 'RO', serbia: 'RS', slovakia: 'SK',
+  slovenia: 'SI', spain: 'ES', sweden: 'SE', switzerland: 'CH', ukraine: 'UA',
+  'united-kingdom': 'UK',
+};
+
+// The warnings' own web links point to a national page that is the same for
+// every region of a country. MeteoAlarm's live page of the country shows all
+// active warnings on a map, and each region there opens its warning. A page
+// per single warning would need MeteoAlarm-internal area ids that the feeds
+// do not contain.
+export function countryPage(countryCode) {
+  return `https://meteoalarm.org/en/live/region/${countryCode}`;
+}
 
 const LEVELS = {
   2: { name: 'Yellow', color: 0xfacc15, size: 0.6 },
@@ -35,18 +47,20 @@ export default {
   pulse: false,
   attribution: 'MeteoAlarm (EUMETNET)',
   async fetch() {
-    const results = await Promise.allSettled(COUNTRIES.map((country) =>
-      fetchJson(`https://feeds.meteoalarm.org/api/v1/warnings/feeds-${country}`)));
-    const failed = COUNTRIES.filter((_, index) => results[index].status === 'rejected');
-    if (failed.length === COUNTRIES.length) throw results[0].reason;
+    const slugs = Object.keys(COUNTRIES);
+    const results = await Promise.allSettled(slugs.map((slug) =>
+      fetchJson(`https://feeds.meteoalarm.org/api/v1/warnings/feeds-${slug}`)));
+    const failed = slugs.filter((_, index) => results[index].status === 'rejected');
+    if (failed.length === slugs.length) throw results[0].reason;
     if (failed.length) console.warn(`meteoalarm: feeds failed: ${failed.join(', ')}`);
 
     const now = Date.now();
     const areas = new Map();
     let unmapped = 0;
 
-    for (const result of results) {
+    for (const [index, result] of results.entries()) {
       if (result.status !== 'fulfilled') continue;
+      const country = COUNTRIES[slugs[index]];
       for (const { alert } of result.value.warnings) {
         const info = alert.info.find((entry) => entry.language?.startsWith('en')) ?? alert.info[0];
         const start = Date.parse(info.onset ?? info.effective);
@@ -63,8 +77,8 @@ export default {
             continue;
           }
           const key = `${position.lat.toFixed(3)},${position.lon.toFixed(3)}`;
-          const entry = areas.get(key) ?? { ...position, name: area.areaDesc, warnings: [] };
-          entry.warnings.push({ level, type, start, expires: Date.parse(info.expires), web: info.web });
+          const entry = areas.get(key) ?? { ...position, name: area.areaDesc, country, warnings: [] };
+          entry.warnings.push({ level, type, start, expires: Date.parse(info.expires) });
           areas.set(key, entry);
         }
       }
@@ -82,7 +96,7 @@ export default {
         title: area.name,
         detail: `${types.join(', ')}; until ${formatTime(top.expires)}`,
         time: new Date(Math.min(...warnings.map((warning) => warning.start))),
-        url: top.web || 'https://meteoalarm.org/',
+        url: countryPage(area.country),
         size: LEVELS[top.level].size,
         color: LEVELS[top.level].color,
       };

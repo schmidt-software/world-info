@@ -7,6 +7,7 @@
 import aisstream from './aisstream.mjs';
 import meteoalarm from './meteoalarm.mjs';
 import nasaFirms from './nasa-firms.mjs';
+import openaq from './openaq.mjs';
 import opensky from './opensky.mjs';
 import ticketmaster from './ticketmaster.mjs';
 import tomtom from './tomtom.mjs';
@@ -18,4 +19,5 @@ export const sources = [
   aisstream,
   tomtom,
   ticketmaster,
+  openaq,
 ];

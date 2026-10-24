@@ -3,5 +3,6 @@
 // where fetch returns events in the normalized shape used by the page and
 // `attribution` is the provider name shown in the page footer.
 
+import meteoalarm from './meteoalarm.mjs';
 
-export const sources = [];
+export const sources = [meteoalarm];

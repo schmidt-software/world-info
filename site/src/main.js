@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { formatAge, formatTime } from './format.js';
 import { Globe } from './globe.js';
 import { MarkerLayer } from './markers.js';
 import { loadSnapshotSources } from './snapshots.js';
@@ -163,16 +164,4 @@ function renderTooltip(event) {
   const time = document.createElement('span');
   time.textContent = `${formatTime(event.time)} (${formatAge(event.time)})`;
   tooltip.replaceChildren(title, detail, time);
-}
-
-function formatTime(date) {
-  return date.toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' });
-}
-
-function formatAge(date) {
-  const signedMinutes = Math.round((Date.now() - date.getTime()) / 60000);
-  const minutes = Math.abs(signedMinutes);
-  const hours = Math.round(minutes / 60);
-  const span = minutes < 60 ? `${minutes} min` : hours < 48 ? `${hours} h` : `${Math.round(hours / 24)} days`;
-  return signedMinutes < 0 ? `in ${span}` : `${span} ago`;
 }

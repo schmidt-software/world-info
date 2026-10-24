@@ -14,6 +14,8 @@ Live: <https://schmidt-software.github.io/world-info/>
   events, disaster alerts and the live ISS position
 - Events from the last hour pulse
 - Hover a marker for details, click it to open the source page
+- "List all events" in the panel opens a searchable list of every loaded event,
+  filterable by layer, with a link to each event's source page
 - Layers can be toggled; every layer refreshes on its own interval
 
 ## How data gets to the page
@@ -86,6 +88,8 @@ site/
   styles.css
   src/
     main.js      wires layers, UI panel, tooltip and refresh timers
+    eventlist.js searchable list of all loaded events
+    format.js    date formatting shared by tooltip and list
     globe.js     scene, camera, controls, globe shader, borders
     markers.js   one instanced marker layer per data source
     sources.js   browser layers, all normalized to one event shape

@@ -148,11 +148,12 @@ Notes on the key-based layers:
 MeteoAlarm identifies warning areas by region code. The lookup in
 `scripts/data/region-centroids.json` maps them to points, built from the
 MeteoAlarm_Geocodes layer of [GeoSphere Austria](https://gis.geosphere.at/)
-(EMMA_ID codes) and the NUTS label points of
+(EMMA_ID codes), the NUTS label points of all versions from 2010 to 2024 of
 [Eurostat GISCO](https://ec.europa.eu/eurostat/web/gisco) (© EuroGeographics
-for the administrative boundaries). Germany is skipped because the DWD layer
-covers it in more detail. Areas identified only by FIPS codes (Ireland) cannot
-be placed yet.
+for the administrative boundaries; France still uses NUTS 2013 codes) and the
+Irish county FIPS codes of [Natural Earth](https://www.naturalearthdata.com/)
+admin-1 data. An area with several codes is placed at their average. Germany
+is skipped because the DWD layer covers it in more detail.
 
 ### Evaluated but not usable in the browser
 

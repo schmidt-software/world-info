@@ -139,7 +139,19 @@ globe.renderer.domElement.addEventListener('pointermove', (domEvent) => {
   globe.renderer.domElement.style.cursor = hoveredEvent.url ? 'pointer' : '';
 });
 
-globe.renderer.domElement.addEventListener('click', () => {
+// Browsers also fire click after a drag that rotated the globe. Only a press
+// and release at (almost) the same spot counts as a click on a marker.
+const CLICK_TOLERANCE_PX = 5;
+let pointerDownAt = null;
+
+globe.renderer.domElement.addEventListener('pointerdown', (domEvent) => {
+  pointerDownAt = { x: domEvent.clientX, y: domEvent.clientY };
+});
+
+globe.renderer.domElement.addEventListener('click', (domEvent) => {
+  const moved = pointerDownAt
+    && Math.hypot(domEvent.clientX - pointerDownAt.x, domEvent.clientY - pointerDownAt.y) > CLICK_TOLERANCE_PX;
+  if (moved) return;
   if (hoveredEvent?.url) window.open(hoveredEvent.url, '_blank', 'noopener');
 });
 

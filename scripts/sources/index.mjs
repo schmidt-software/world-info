@@ -12,6 +12,7 @@ import openaq from './openaq.mjs';
 import opensky from './opensky.mjs';
 import ticketmaster from './ticketmaster.mjs';
 import tomtom from './tomtom.mjs';
+import windyWebcams from './windy-webcams.mjs';
 
 export const sources = [
   meteoalarm,
@@ -22,4 +23,5 @@ export const sources = [
   ticketmaster,
   openaq,
   entsoe,
+  windyWebcams,
 ];

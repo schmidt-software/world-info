@@ -92,7 +92,10 @@ function createLayerRow(layer) {
   swatch.className = 'swatch';
   swatch.style.background = `#${layer.source.color.toString(16).padStart(6, '0')}`;
 
-  const label = document.createElement('span');
+  // The name opens the event list filtered to this layer. Layers without
+  // data (missing API key) keep a plain label.
+  const label = document.createElement(layer.source.unavailable ? 'span' : 'button');
+  label.className = 'layer-name';
   label.textContent = layer.source.label;
 
   const count = document.createElement('span');
@@ -104,6 +107,15 @@ function createLayerRow(layer) {
   status.textContent = 'Loading';
 
   row.append(toggle, swatch, label, count, status);
+  // A click anywhere on the row except the checkbox opens the event list.
+  if (!layer.source.unavailable) {
+    label.type = 'button';
+    label.title = `List the events of ${layer.source.label}`;
+    row.classList.add('opens-list');
+    row.addEventListener('click', (domEvent) => {
+      if (domEvent.target !== toggle) eventList.open(layer.source.id);
+    });
+  }
   layerList.append(row);
   return { row, toggle, count, status };
 }

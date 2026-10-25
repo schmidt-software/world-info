@@ -51,3 +51,15 @@ export function pickNearest(candidates, x, y, tolerance = 3) {
   }
   return best;
 }
+
+// What a click or tap on `item` (a marker or cluster, or null) does. On
+// touch screens the first tap on a marker shows its tooltip and a second tap
+// on the same marker opens the source; `tappedEvent` is the event whose
+// tooltip a tap opened last. Returns 'zoom', 'tooltip', 'open', 'close' or
+// 'none'.
+export function clickAction(item, touch, tappedEvent = null) {
+  if (!item) return touch ? 'close' : 'none';
+  if (item.cluster) return 'zoom';
+  if (touch && item.event !== tappedEvent) return 'tooltip';
+  return item.event.url ? 'open' : touch ? 'close' : 'none';
+}

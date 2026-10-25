@@ -6,6 +6,7 @@ import { Globe } from './globe.js';
 import { CountryLabels } from './labels.js';
 import { MarkerLayer, markerGrowth, updateMarkerView } from './markers.js';
 import { setUpPanel } from './panel.js';
+import { clickAction } from './screen.js';
 import { loadSnapshotSources } from './snapshots.js';
 import { sources } from './sources.js';
 import { TileLayer } from './tiles.js';
@@ -222,53 +223,93 @@ function updateClock() {
 }
 
 // Tooltip and click: the marker nearest to the pointer on screen, among the
-// visible layers; markers behind the globe cannot be picked.
-let hoveredItem = null;
+// visible layers; markers behind the globe cannot be picked. A fingertip is
+// far less precise than a mouse pointer, so touch input reaches further.
+const PICK_TOLERANCE_PX = { mouse: 3, touch: 12 };
 
-function itemAt(x, y) {
+// Browsers also fire click after a drag that rotated the globe or a pinch.
+// Only a press and release of a single pointer at (almost) the same spot
+// counts as a click or tap on a marker.
+const CLICK_TOLERANCE_PX = 5;
+const activePointers = new Set();
+let gesture = null;
+// On touch screens the marker whose tooltip a tap opened; tapping it again
+// opens its source, so a single tap never leaves the page unexpectedly.
+let tappedItem = null;
+
+function itemAt(x, y, pointerType) {
   const viewport = viewportSize();
   const growth = markerGrowth();
+  const tolerance = PICK_TOLERANCE_PX[pointerType] ?? PICK_TOLERANCE_PX.mouse;
   let best = null;
   for (const layer of layers) {
-    const hit = layer.pick(globe.camera, viewport, x, y, growth);
+    const hit = layer.pick(globe.camera, viewport, x, y, growth, tolerance);
     if (hit && (!best || hit.distance < best.distance)) best = hit;
   }
   return best?.item ?? null;
 }
 
+function showTooltip(item, x, y, hint = null) {
+  renderTooltip(item.event, hint);
+  tooltip.style.left = `${Math.max(8, Math.min(x + 14, window.innerWidth - 300))}px`;
+  tooltip.hidden = false;
+  // Taps near the bottom of a phone screen would push it out of view.
+  tooltip.style.top = `${Math.max(8, Math.min(y + 14, window.innerHeight - tooltip.offsetHeight - 8))}px`;
+}
+
+function hideTooltip() {
+  tooltip.hidden = true;
+  tappedItem = null;
+}
+
+// Mouse: the tooltip follows the pointer. Touch has no hover; a tap shows
+// the tooltip instead (see the click handler).
 globe.renderer.domElement.addEventListener('pointermove', (domEvent) => {
-  hoveredItem = itemAt(domEvent.clientX, domEvent.clientY);
-  if (!hoveredItem) {
-    tooltip.hidden = true;
-    globe.renderer.domElement.style.cursor = '';
+  if (domEvent.pointerType === 'touch') {
+    if (gesture && !gesture.moved && movedFrom(gesture, domEvent)) gesture.moved = true;
+    if (gesture?.moved) hideTooltip();
     return;
   }
-  renderTooltip(hoveredItem.event);
-  tooltip.style.left = `${Math.min(domEvent.clientX + 14, window.innerWidth - 300)}px`;
-  tooltip.style.top = `${domEvent.clientY + 14}px`;
-  tooltip.hidden = false;
-  globe.renderer.domElement.style.cursor = hoveredItem.cluster || hoveredItem.event.url ? 'pointer' : '';
+  const item = itemAt(domEvent.clientX, domEvent.clientY, domEvent.pointerType);
+  globe.renderer.domElement.style.cursor = item && (item.cluster || item.event.url) ? 'pointer' : '';
+  if (item) showTooltip(item, domEvent.clientX, domEvent.clientY);
+  else hideTooltip();
 });
 
-// Browsers also fire click after a drag that rotated the globe. Only a press
-// and release at (almost) the same spot counts as a click on a marker.
-const CLICK_TOLERANCE_PX = 5;
-let pointerDownAt = null;
+function movedFrom(start, domEvent) {
+  return Math.hypot(domEvent.clientX - start.x, domEvent.clientY - start.y) > CLICK_TOLERANCE_PX;
+}
 
 globe.renderer.domElement.addEventListener('pointerdown', (domEvent) => {
-  pointerDownAt = { x: domEvent.clientX, y: domEvent.clientY };
+  activePointers.add(domEvent.pointerId);
+  if (activePointers.size === 1) {
+    gesture = { x: domEvent.clientX, y: domEvent.clientY, pointerType: domEvent.pointerType, moved: false };
+  } else if (gesture) {
+    gesture.moved = true;
+  }
 });
 
+for (const type of ['pointerup', 'pointercancel']) {
+  globe.renderer.domElement.addEventListener(type, (domEvent) => activePointers.delete(domEvent.pointerId));
+}
+
 globe.renderer.domElement.addEventListener('click', (domEvent) => {
-  const moved = pointerDownAt
-    && Math.hypot(domEvent.clientX - pointerDownAt.x, domEvent.clientY - pointerDownAt.y) > CLICK_TOLERANCE_PX;
-  if (moved || !hoveredItem) return;
-  if (hoveredItem.cluster) {
+  if (!gesture || gesture.moved || movedFrom(gesture, domEvent)) return;
+  const touch = gesture.pointerType === 'touch';
+  const item = itemAt(domEvent.clientX, domEvent.clientY, gesture.pointerType);
+  const action = clickAction(item, touch, tappedItem?.event);
+  if (action === 'tooltip') {
+    showTooltip(item, domEvent.clientX, domEvent.clientY, item.event.url ? 'Tap again to open the source.' : null);
+    tappedItem = item;
+    return;
+  }
+  if (touch) hideTooltip();
+  if (action === 'zoom') {
     // A cluster zooms in towards its members until they separate.
-    const { lat, lon } = vector3ToLatLon(hoveredItem.position);
+    const { lat, lon } = vector3ToLatLon(item.position);
     zoom.flyTo(lat, lon, zoom.altitude / 4, 900);
-  } else if (hoveredItem.event.url) {
-    window.open(hoveredItem.event.url, '_blank', 'noopener');
+  } else if (action === 'open') {
+    window.open(item.event.url, '_blank', 'noopener');
   }
 });
 
@@ -289,7 +330,7 @@ function viewportSize() {
   return { width: globe.container.clientWidth, height: globe.container.clientHeight };
 }
 
-function renderTooltip(event) {
+function renderTooltip(event, hint) {
   const title = document.createElement('strong');
   title.textContent = event.title;
   const detail = document.createElement('span');
@@ -297,4 +338,9 @@ function renderTooltip(event) {
   const time = document.createElement('span');
   time.textContent = `${formatTime(event.time)} (${formatAge(event.time)})`;
   tooltip.replaceChildren(title, detail, time);
+  if (hint) {
+    const note = document.createElement('em');
+    note.textContent = hint;
+    tooltip.append(note);
+  }
 }

@@ -419,3 +419,21 @@ body {
 .country-label[hidden] {
   display: none;
 }
+
+/* "Map" button in the event list: flies the globe to the event. */
+.events-table .show-on-map {
+  margin-right: 10px;
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.events-table .show-on-map:hover,
+.events-table .show-on-map:focus-visible {
+  background: rgba(255, 255, 255, 0.14);
+}

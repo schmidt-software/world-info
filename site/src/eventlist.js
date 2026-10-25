@@ -34,8 +34,10 @@ export function linkLabel(url) {
 }
 
 export class EventList {
-  constructor({ getLayers }) {
+  // `onShow(source, event)` is called by the "Show on map" button of a row.
+  constructor({ getLayers, onShow }) {
     this.getLayers = getLayers;
+    this.onShow = onShow;
     this.view = document.getElementById('events-view');
     this.count = document.getElementById('events-count');
     this.search = document.getElementById('events-search');
@@ -79,7 +81,7 @@ export class EventList {
   // column. Clicks on the link itself are left to the browser, and so is a
   // click that ends a text selection.
   openRowSource(domEvent) {
-    if (domEvent.target.closest('a')) return;
+    if (domEvent.target.closest('a, button')) return;
     if (window.getSelection()?.toString()) return;
     const link = domEvent.target.closest('tr')?.querySelector('a[href]');
     if (link) window.open(link.href, '_blank', 'noopener');
@@ -153,6 +155,18 @@ export class EventList {
 
     const linkCell = document.createElement('td');
     linkCell.className = 'link';
+    // Closes the list and flies the globe to the event.
+    const show = document.createElement('button');
+    show.type = 'button';
+    show.className = 'show-on-map';
+    show.textContent = 'Map';
+    show.title = 'Show on map';
+    show.setAttribute('aria-label', `Show ${event.title} on the map`);
+    show.addEventListener('click', () => {
+      this.close();
+      this.onShow?.(layer, event);
+    });
+    linkCell.append(show);
     if (event.url) {
       const link = document.createElement('a');
       link.href = event.url;

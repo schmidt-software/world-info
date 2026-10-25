@@ -545,3 +545,10 @@ body {
     bottom: 72px;
   }
 }
+
+/* Shown under the map view selector while a tile provider is replaced. */
+#map-view-notice {
+  margin: -2px 0 8px;
+  color: var(--error);
+  font-size: 0.75rem;
+}

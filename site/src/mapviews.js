@@ -52,23 +52,42 @@ export const VIEWS = [
 const STREETS_OPAQUE_AT = PROVIDERS.streets.minZoom + 1;
 
 // For each provider the zoom level from which it fades in, or null when it
-// is off. Chosen views show their provider at every zoom level.
-export function providerMinZooms(view, zoomLevel) {
+// is off. Chosen views show their provider at every zoom level. Providers in
+// `failed` (see TileLayer.failed) are replaced by the next lower view:
+// streets and today's imagery fall back to satellite, satellite to the map.
+export function providerMinZooms(view, zoomLevel, failed = new Set()) {
   const off = { satellite: null, today: null, streets: null };
+  const zooms = { ...off };
   switch (view) {
     case 'map':
-      return off;
+      break;
     case 'satellite':
     case 'today':
     case 'streets':
-      return { ...off, [view]: 0 };
+      zooms[view] = 0;
+      break;
     default:
-      return {
-        ...off,
-        satellite: zoomLevel < STREETS_OPAQUE_AT ? PROVIDERS.satellite.minZoom : null,
-        streets: PROVIDERS.streets.minZoom,
-      };
+      zooms.satellite = zoomLevel < STREETS_OPAQUE_AT ? PROVIDERS.satellite.minZoom : null;
+      zooms.streets = PROVIDERS.streets.minZoom;
   }
+  for (const id of ['streets', 'today']) {
+    if (zooms[id] !== null && failed.has(id)) {
+      zooms.satellite = Math.min(zooms.satellite ?? Infinity, view === 'auto' ? PROVIDERS.satellite.minZoom : 0);
+      zooms[id] = null;
+    }
+  }
+  if (failed.has('satellite')) zooms.satellite = null;
+  return zooms;
+}
+
+// A short note for the panel while a provider of the chosen view is
+// replaced, or null when everything works.
+export function fallbackNotice(view, failed) {
+  const used = view === 'auto' ? ['streets', 'satellite'] : [view];
+  const names = { streets: 'Street map', satellite: 'Satellite imagery', today: "Today's imagery" };
+  const missing = used.filter((id) => failed.has(id));
+  if (!missing.length) return null;
+  return `${missing.map((id) => names[id]).join(' and ')} unavailable right now; showing what is available.`;
 }
 
 // The VIIRS satellite passes the dayside around 13:30 local time; the

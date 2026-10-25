@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
-  altitudeAfterWheel, clampAltitude, DEFAULT_ALTITUDE, MAX_ALTITUDE, MIN_ALTITUDE, rotateSpeedFor, zoomLevelFor,
+  altitudeAfterPinch, altitudeAfterWheel, clampAltitude, DEFAULT_ALTITUDE, MAX_ALTITUDE, MIN_ALTITUDE, rotateSpeedFor, zoomLevelFor,
 } from '../../site/src/altitude.js';
 
 test('altitude: zoom range ends about 1.3 km above the surface', () => {
@@ -33,4 +33,13 @@ test('altitude: maps to slippy map zoom levels from the globe to streets', () =>
   assert.ok(zoomLevelFor(MIN_ALTITUDE) > 16);
   assert.equal(zoomLevelFor(1e-9), 19);
   assert.equal(zoomLevelFor(1000), 0);
+});
+
+test('altitude: pinching scales the altitude with the finger distance', () => {
+  assert.equal(altitudeAfterPinch(2, 100, 200), 1);
+  assert.equal(altitudeAfterPinch(1, 100, 50), 2);
+  // Only the start of the pinch counts, so a pinch back restores the altitude.
+  assert.equal(altitudeAfterPinch(1.5, 80, 80), 1.5);
+  assert.equal(altitudeAfterPinch(MIN_ALTITUDE, 100, 400), MIN_ALTITUDE);
+  assert.equal(altitudeAfterPinch(MAX_ALTITUDE, 100, 20), MAX_ALTITUDE);
 });

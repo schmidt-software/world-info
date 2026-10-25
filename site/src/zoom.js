@@ -1,12 +1,14 @@
 // Zoom for the globe, from the whole Earth down to about 1 km above the
 // surface. OrbitControls only rotates; this module handles wheel, pinch,
-// buttons and keys, keeps the point under the pointer in place while
-// zooming, and adapts rotation speed and depth range to the altitude.
+// buttons and keys, keeps the point under the mouse pointer in place while
+// zooming with the wheel, and adapts rotation speed and depth range to the
+// altitude. Pinching zooms towards the screen centre.
 //
 // Altitudes are in globe radii above the surface, see altitude.js.
 
 import * as THREE from 'three';
 import {
+  altitudeAfterPinch,
   altitudeAfterWheel,
   clampAltitude,
   DEFAULT_ALTITUDE,
@@ -37,7 +39,7 @@ export class ZoomController {
     this.anchor = null;
     this.touches = new Map();
     this.flight = null;
-    this.pinchDistance = null;
+    this.pinch = null;
 
     globe.controls.enableZoom = false;
 
@@ -95,26 +97,37 @@ export class ZoomController {
     this.stopAutoRotate();
   }
 
+  // A pinch sets the altitude in proportion to the finger distance at its
+  // start, towards the screen centre, so the globe never turns on its own.
+  // OrbitControls would also rotate with the remaining finger once one is
+  // lifted, starting from a stale position; rotation therefore stays off
+  // from the second finger until all fingers are lifted.
   onPointerDown(event) {
     this.flight = null;
     if (event.pointerType !== 'touch') return;
     this.touches.set(event.pointerId, { x: event.clientX, y: event.clientY });
-    this.pinchDistance = this.touches.size === 2 ? this.touchDistance() : null;
+    if (this.touches.size === 2) {
+      this.pinch = { distance: this.touchDistance(), altitude: this.altitude };
+      this.globe.controls.enableRotate = false;
+      this.stopAutoRotate();
+    }
   }
 
   onPointerMove(event) {
     if (!this.touches.has(event.pointerId)) return;
     this.touches.set(event.pointerId, { x: event.clientX, y: event.clientY });
-    if (this.touches.size !== 2 || !this.pinchDistance) return;
+    if (!this.pinch || this.touches.size !== 2) return;
     const distance = this.touchDistance();
-    const [a, b] = [...this.touches.values()];
-    this.zoomBy(this.pinchDistance / distance, { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
-    this.pinchDistance = distance;
+    if (distance < 1) return;
+    this.anchor = null;
+    this.targetAltitude = altitudeAfterPinch(this.pinch.altitude, this.pinch.distance, distance);
+    this.moveTo(this.targetAltitude);
   }
 
   onPointerUp(event) {
     this.touches.delete(event.pointerId);
-    this.pinchDistance = null;
+    if (this.touches.size < 2) this.pinch = null;
+    if (this.touches.size === 0) this.globe.controls.enableRotate = true;
   }
 
   touchDistance() {

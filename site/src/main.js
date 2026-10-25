@@ -5,11 +5,13 @@ import { isView, PROVIDERS, providerMinZooms, satelliteDate, VIEWS } from './map
 import { Globe } from './globe.js';
 import { CountryLabels } from './labels.js';
 import { MarkerLayer, markerGrowth, updateMarkerView } from './markers.js';
+import { setUpPanel } from './panel.js';
 import { loadSnapshotSources } from './snapshots.js';
 import { sources } from './sources.js';
 import { TileLayer } from './tiles.js';
 import { ZoomController } from './zoom.js';
 
+setUpPanel();
 const globe = new Globe(document.getElementById('globe'));
 const layers = [];
 const layerList = document.getElementById('layers');

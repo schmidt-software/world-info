@@ -22,6 +22,20 @@ export class CountryLabels {
     this.container = container;
     this.camera = camera;
     this.labels = [];
+    this.enabled = true;
+  }
+
+  // Street maps carry their own place names; country labels are switched
+  // off while they are shown.
+  setEnabled(enabled) {
+    if (enabled === this.enabled) return;
+    this.enabled = enabled;
+    if (!enabled) {
+      for (const label of this.labels) {
+        label.element.hidden = true;
+        label.shown = false;
+      }
+    }
   }
 
   // `countries` is a GeoJSON FeatureCollection with a `name` property.
@@ -48,7 +62,7 @@ export class CountryLabels {
   }
 
   update() {
-    if (!this.labels.length) return;
+    if (!this.labels.length || !this.enabled) return;
     const { clientWidth: width, clientHeight: height } = this.container;
     const distance = this.camera.position.length();
     cameraDirection.copy(this.camera.position).normalize();

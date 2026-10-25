@@ -207,8 +207,12 @@ export class ZoomController {
   updateDepthRange() {
     const altitude = this.altitude;
     const near = Math.max(altitude * 0.1, 0.000005);
-    const far = altitude + 3;
-    if (Math.abs(near / this.camera.near - 1) > 0.05 || Math.abs(far - this.camera.far) > 0.1) {
+    // Nothing beyond the horizon is visible: the far plane sits at the
+    // distance to the horizon plus 0.5 radii for the atmosphere rim and
+    // objects above the far side (ISS). This also keeps the far side of the
+    // globe out of the view frustum, so no map tiles are loaded there.
+    const far = Math.sqrt((1 + altitude) ** 2 - 1) + 0.5;
+    if (Math.abs(near / this.camera.near - 1) > 0.05 || Math.abs(far / this.camera.far - 1) > 0.02) {
       this.camera.near = near;
       this.camera.far = far;
       this.camera.updateProjectionMatrix();

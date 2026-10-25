@@ -92,6 +92,11 @@ export class Globe {
         uniforms: { sunDirection: { value: this.sunDirection }, map: { value: oceanTexture() } },
         vertexShader: globeVertexShader,
         fragmentShader: globeFragmentShader,
+        // Map tiles (tiles.js) lie on the same sphere; pushing the globe back
+        // in depth lets them win without flickering.
+        polygonOffset: true,
+        polygonOffsetFactor: 2,
+        polygonOffsetUnits: 4,
       }),
     );
     this.scene.add(this.globeMesh);
@@ -132,9 +137,18 @@ export class Globe {
 
     const coastlines = mesh(world, world.objects.land);
     const borders = mesh(world, world.objects.countries, (a, b) => a !== b);
-    this.scene.add(createLines(coastlines, LINE_RADIUS, 0x7fb4e8, 0.9));
-    this.scene.add(createLines(borders, LINE_RADIUS, 0x7fb4e8, 0.35));
+    this.outlines = [
+      createLines(coastlines, LINE_RADIUS, 0x7fb4e8, 0.9),
+      createLines(borders, LINE_RADIUS, 0x7fb4e8, 0.35),
+    ];
+    this.scene.add(...this.outlines);
     return feature(world, world.objects.countries);
+  }
+
+  // Street maps draw their own coastlines and borders; the overview lines
+  // are hidden over them so they do not appear twice.
+  setOutlinesVisible(visible) {
+    for (const line of this.outlines ?? []) line.visible = visible;
   }
 
   updateSun(date) {

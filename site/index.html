@@ -12,7 +12,11 @@
       "imports": {
         "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
         "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
-        "topojson-client": "https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/+esm"
+        "topojson-client": "https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/+esm",
+        "three-slippy-map-globe": "https://cdn.jsdelivr.net/npm/three-slippy-map-globe@1.0.6/dist/three-slippy-map-globe.mjs",
+        "d3-geo": "https://cdn.jsdelivr.net/npm/d3-geo@3.1.1/+esm",
+        "d3-scale": "https://cdn.jsdelivr.net/npm/d3-scale@4.0.2/+esm",
+        "d3-octree": "https://cdn.jsdelivr.net/npm/d3-octree@1.1.0/+esm"
       }
     }
   </script>
@@ -66,7 +70,8 @@
     <a href="https://eonet.gsfc.nasa.gov/" target="_blank" rel="noopener">NASA EONET</a>,
     <a href="https://www.gdacs.org/" target="_blank" rel="noopener">GDACS</a>,
     <a href="https://wheretheiss.at/" target="_blank" rel="noopener">wheretheiss.at</a><span id="snapshot-credits"></span>,
-    borders <a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener">Natural Earth</a>
+    borders <a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener">Natural Earth</a><span id="map-credits" hidden>,
+    map &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors</span>
   </footer>
 
   <script type="module" src="src/main.js"></script>

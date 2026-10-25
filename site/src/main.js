@@ -6,6 +6,7 @@ import { CountryLabels } from './labels.js';
 import { MarkerLayer, markerGrowth, updateMarkerView } from './markers.js';
 import { loadSnapshotSources } from './snapshots.js';
 import { sources } from './sources.js';
+import { OPENSTREETMAP, TileLayer } from './tiles.js';
 import { ZoomController } from './zoom.js';
 
 const globe = new Globe(document.getElementById('globe'));
@@ -27,6 +28,17 @@ loadSnapshotSources()
 
 const countryLabels = new CountryLabels(document.getElementById('labels'), globe.camera);
 globe.onFrame(() => countryLabels.update());
+// Street map tiles when zoomed in; while they cover the view, the overview
+// outlines and country labels give way to the map's own.
+const mapCredits = document.getElementById('map-credits');
+const streets = new TileLayer(globe, OPENSTREETMAP);
+globe.onFrame((time) => {
+  streets.update(globe.camera, true, time);
+  globe.setOutlinesVisible(!streets.fullyVisible);
+  countryLabels.setEnabled(!streets.fullyVisible);
+  mapCredits.hidden = !streets.tiles.visible;
+});
+
 // Marker sizes and clusters depend on the camera, so they follow it every frame.
 globe.onFrame((time) => {
   const viewport = viewportSize();

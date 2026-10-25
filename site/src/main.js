@@ -1,12 +1,13 @@
 import { EventList } from './eventlist.js';
 import { formatAge, formatTime } from './format.js';
 import { vector3ToLatLon } from './geo.js';
+import { isView, PROVIDERS, providerMinZooms, satelliteDate, VIEWS } from './mapviews.js';
 import { Globe } from './globe.js';
 import { CountryLabels } from './labels.js';
 import { MarkerLayer, markerGrowth, updateMarkerView } from './markers.js';
 import { loadSnapshotSources } from './snapshots.js';
 import { sources } from './sources.js';
-import { OPENSTREETMAP, TileLayer } from './tiles.js';
+import { TileLayer } from './tiles.js';
 import { ZoomController } from './zoom.js';
 
 const globe = new Globe(document.getElementById('globe'));
@@ -28,16 +29,71 @@ loadSnapshotSources()
 
 const countryLabels = new CountryLabels(document.getElementById('labels'), globe.camera);
 globe.onFrame(() => countryLabels.update());
-// Street map tiles when zoomed in; while they cover the view, the overview
-// outlines and country labels give way to the map's own.
-const mapCredits = document.getElementById('map-credits');
-const streets = new TileLayer(globe, OPENSTREETMAP);
-globe.onFrame((time) => {
-  streets.update(globe.camera, true, time);
-  globe.setOutlinesVisible(!streets.fullyVisible);
-  countryLabels.setEnabled(!streets.fullyVisible);
-  mapCredits.hidden = !streets.tiles.visible;
+// Map views: satellite and street tiles over the map-style globe, chosen by
+// zoom level ("auto") or fixed in the panel. While the street map covers the
+// view, the overview outlines and country labels give way to its own.
+const VIEW_STORAGE_KEY = 'world-info.mapView';
+const tileLayers = Object.fromEntries(Object.entries(PROVIDERS).map(([id, provider]) => [id, new TileLayer(globe, provider)]));
+const viewSelect = document.getElementById('map-view');
+let mapView = readStoredView();
+
+for (const view of VIEWS) {
+  const option = document.createElement('option');
+  option.value = view.id;
+  option.textContent = view.id === 'today' ? `${view.label} (${satelliteDate(Date.now())})` : view.label;
+  viewSelect.append(option);
+}
+viewSelect.value = mapView;
+viewSelect.addEventListener('change', () => {
+  mapView = viewSelect.value;
+  try { localStorage.setItem(VIEW_STORAGE_KEY, mapView); } catch { /* storage may be unavailable */ }
 });
+
+const mapCredits = document.getElementById('map-credits');
+let shownCredits = '';
+
+globe.onFrame((time) => {
+  const minZooms = providerMinZooms(mapView, zoom.zoomLevel);
+  if (minZooms.today !== null) useSatelliteDate(satelliteDate(Date.now()));
+  for (const [id, layer] of Object.entries(tileLayers)) layer.update(globe.camera, minZooms[id], time);
+  const streetsCover = tileLayers.streets.fullyVisible;
+  globe.setOutlinesVisible(!streetsCover);
+  countryLabels.setEnabled(!streetsCover);
+  showMapCredits(Object.values(tileLayers).filter((layer) => layer.tiles.visible).map((layer) => layer.provider.credit));
+});
+
+function readStoredView() {
+  try {
+    const stored = localStorage.getItem(VIEW_STORAGE_KEY);
+    return isView(stored) ? stored : 'auto';
+  } catch {
+    return 'auto';
+  }
+}
+
+// The daily imagery changes its date at 20:00 UTC; tiles of the old day are
+// dropped so the new day loads.
+function useSatelliteDate(date) {
+  if (PROVIDERS.today.date === date) return;
+  PROVIDERS.today.date = date;
+  tileLayers.today.tiles.clearTiles();
+}
+
+// Every provider whose tiles are visible is credited, as their terms
+// require; the footer only changes when the set of providers does.
+function showMapCredits(credits) {
+  const key = credits.map((credit) => credit.text).join('|');
+  if (key === shownCredits) return;
+  shownCredits = key;
+  mapCredits.replaceChildren(...credits.flatMap((credit) => {
+    const link = document.createElement('a');
+    link.href = credit.href;
+    link.target = '_blank';
+    link.rel = 'noopener';
+    link.textContent = credit.text;
+    return [', map ', link];
+  }));
+}
 
 // Marker sizes and clusters depend on the camera, so they follow it every frame.
 globe.onFrame((time) => {

@@ -29,6 +29,9 @@
     <h1>World Info</h1>
     <p class="subtitle">Events happening on Earth right now</p>
     <button id="show-events" class="text-button" type="button">List all events</button>
+    <label class="map-view">Map view
+      <select id="map-view"></select>
+    </label>
     <ul id="layers"></ul>
     <p id="clock"></p>
   </aside>
@@ -70,8 +73,7 @@
     <a href="https://eonet.gsfc.nasa.gov/" target="_blank" rel="noopener">NASA EONET</a>,
     <a href="https://www.gdacs.org/" target="_blank" rel="noopener">GDACS</a>,
     <a href="https://wheretheiss.at/" target="_blank" rel="noopener">wheretheiss.at</a><span id="snapshot-credits"></span>,
-    borders <a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener">Natural Earth</a><span id="map-credits" hidden>,
-    map &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors</span>
+    borders <a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener">Natural Earth</a><span id="map-credits"></span>
   </footer>
 
   <script type="module" src="src/main.js"></script>

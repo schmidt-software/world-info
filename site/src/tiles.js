@@ -17,7 +17,7 @@ const THRESHOLDS = Array.from({ length: 30 }, (_, level) => (26.5 / Math.SQRT2) 
 // Tiles are sphere segments; one segment per degree keeps their facets close
 // enough to the globe that it does not show through.
 const CURVATURE_DEGREES = 1;
-// Tiles fade in over one zoom level around the provider's minimum zoom.
+// Tiles fade in over the zoom level after their minimum zoom.
 const FADE_LEVELS = 1;
 // Tile requests follow the camera, but sparingly: while it moves within one
 // zoom level at most every POV_INTERVAL_MS, and after a level change only
@@ -58,7 +58,9 @@ const tileFragmentShader = /* glsl */ `
   }
 `;
 
-// A provider: { id, minZoom, maxZoom, nightFactor, url(x, y, z) }.
+// A provider: { id, maxZoom, nightFactor, url(x, y, z), above? }. Layers of
+// providers with `above` are drawn over the others where both overlap
+// while fading.
 export class TileLayer {
   constructor(globe, provider) {
     this.globe = globe;
@@ -80,6 +82,13 @@ export class TileLayer {
     // (geo.js) puts (0, 0) on +X and 90 degrees east on -Z. A quarter turn
     // around the polar axis aligns both.
     this.tiles.rotation.y = Math.PI / 2;
+    // The library adds a black sphere just below the surface against depth
+    // artefacts and toggles its visibility itself. Our globe already lies
+    // underneath, and the black sphere would show through where Mercator
+    // tiles end (above about 85 degrees), so it is made to draw nothing.
+    const backLayer = this.tiles.children[0];
+    backLayer.material.colorWrite = false;
+    backLayer.material.depthWrite = false;
     this.tiles.curvatureResolution = CURVATURE_DEGREES;
     this.tiles.visible = false;
     // The library gives each loaded tile a lit material; our scene has no
@@ -110,33 +119,41 @@ export class TileLayer {
       fragmentShader: tileFragmentShader,
       transparent: true,
       depthWrite,
+      polygonOffset: Boolean(this.provider.above),
+      polygonOffsetFactor: -1,
+      polygonOffsetUnits: -2,
     });
+    object.renderOrder = this.provider.above ? 2 : 1;
     object.userData.restyled = true;
     return object;
   }
 
-  // Opacity for a zoom level: 0 below the provider's minimum zoom, 1 one
-  // level above it.
-  opacityAt(zoomLevel) {
-    return THREE.MathUtils.clamp((zoomLevel - this.provider.minZoom + FADE_LEVELS / 2) / FADE_LEVELS, 0, 1);
+  // Opacity for a zoom level: 0 up to `minZoom`, 1 from one level above it.
+  static opacityAt(zoomLevel, minZoom) {
+    return THREE.MathUtils.clamp((zoomLevel - minZoom) / FADE_LEVELS, 0, 1);
   }
 
   get fullyVisible() {
     return this.tiles.visible && this.opacity.value >= 1;
   }
 
-  // Called every frame. `enabled` is false when another view is chosen; a
-  // disabled or faded-out layer requests nothing.
-  update(camera, enabled, time) {
-    const opacity = enabled ? this.opacityAt(zoomLevelFor(camera.position.length() - 1)) : 0;
+  // Called every frame with the zoom level from which the layer fades in
+  // (see mapviews.js), or null when its view is off. A layer that is off or
+  // faded out requests nothing.
+  update(camera, minZoom, time) {
+    const opacity = minZoom === null ? 0 : TileLayer.opacityAt(zoomLevelFor(camera.position.length() - 1), minZoom);
     this.opacity.value = opacity;
     const visible = opacity > 0;
     if (visible !== this.tiles.visible) {
       this.tiles.visible = visible;
       // Free the textures of a layer that is no longer shown; a layer that
       // appears must ask for tiles even if the camera has not moved.
-      if (visible) this.lastCamera.set(0, 0, 0);
-      else this.tiles.clearTiles();
+      if (visible) {
+        this.lastCamera.set(0, 0, 0);
+        this.requestedLevel = -1;
+      } else {
+        this.tiles.clearTiles();
+      }
     }
     if (!visible) return;
 
@@ -151,9 +168,12 @@ export class TileLayer {
     }
     if (camera.position.distanceTo(this.lastCamera) <= tolerance) return;
     const level = levelFor(altitude, this.provider);
+    // A layer that has just appeared asks at once; the auto-rotating globe
+    // would otherwise never rest long enough.
+    const first = this.requestedLevel === -1;
     const sameLevel = level === this.requestedLevel;
     const resting = time - this.lastMove >= SETTLE_MS;
-    if ((sameLevel && time - this.lastPov >= POV_INTERVAL_MS) || resting) {
+    if (first || (sameLevel && time - this.lastPov >= POV_INTERVAL_MS) || resting) {
       this.tiles.updatePov(camera);
       this.lastCamera.copy(camera.position);
       this.lastPov = time;
@@ -167,11 +187,3 @@ function levelFor(altitude, provider) {
   const index = THRESHOLDS.findIndex((threshold) => threshold <= altitude);
   return Math.min(provider.maxZoom, Math.max(provider.minLevel ?? 0, index < 0 ? THRESHOLDS.length : index));
 }
-
-export const OPENSTREETMAP = {
-  id: 'osm',
-  minZoom: 9,
-  maxZoom: 19,
-  nightFactor: 0.75,
-  url: (x, y, z) => `https://tile.openstreetmap.org/${z}/${x}/${y}.png`,
-};

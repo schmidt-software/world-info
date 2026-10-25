@@ -144,6 +144,12 @@ body {
   color: var(--muted);
 }
 
+#tooltip em {
+  display: block;
+  margin-top: 4px;
+  font-style: normal;
+}
+
 #credits {
   position: fixed;
   right: 16px;

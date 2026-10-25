@@ -199,7 +199,7 @@ export class MarkerLayer {
 
   // The item under the screen point (x, y), with its distance in pixels, or
   // null. Items hidden behind the globe cannot be picked.
-  pick(camera, viewport, x, y, growth) {
+  pick(camera, viewport, x, y, growth, tolerance) {
     if (!this.group.visible || !this.mesh) return null;
     const candidates = [];
     this.items.forEach((item, index) => {
@@ -208,7 +208,7 @@ export class MarkerLayer {
       if (screen.behind) return;
       candidates.push({ ...screen, radius: item.pixelRadius * growth, index });
     });
-    const hit = pickNearest(candidates, x, y);
+    const hit = pickNearest(candidates, x, y, tolerance);
     return hit ? { item: this.items[hit.index], distance: Math.hypot(hit.x - x, hit.y - y) } : null;
   }
 

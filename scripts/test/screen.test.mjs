@@ -3,7 +3,7 @@
 
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { clusterByGrid, isOccluded, pickNearest } from '../../site/src/screen.js';
+import { clickAction, clusterByGrid, isOccluded, pickNearest } from '../../site/src/screen.js';
 
 const camera = { x: 0, y: 0, z: 3 };
 
@@ -34,4 +34,29 @@ test('screen: picks the closest marker within reach', () => {
   assert.equal(pickNearest(candidates, 104, 100).id, 'b');
   assert.equal(pickNearest(candidates, 99, 101).id, 'a');
   assert.equal(pickNearest(candidates, 130, 100), null);
+});
+
+test('screen: a wider tolerance reaches markers next to a fingertip', () => {
+  const candidates = [{ x: 100, y: 100, radius: 5, id: 'a' }];
+  assert.equal(pickNearest(candidates, 112, 106), null);
+  assert.equal(pickNearest(candidates, 112, 106, 12).id, 'a');
+});
+
+test('screen: a click opens the source, a tap shows the tooltip first', () => {
+  const event = { url: 'https://example.org/' };
+  const marker = { event };
+  assert.equal(clickAction(marker, false), 'open');
+  assert.equal(clickAction(marker, true), 'tooltip');
+  assert.equal(clickAction(marker, true, event), 'open');
+  assert.equal(clickAction(marker, true, { url: 'https://example.org/other' }), 'tooltip');
+});
+
+test('screen: clusters zoom in, empty taps close the tooltip', () => {
+  assert.equal(clickAction({ cluster: true, event: {} }, true), 'zoom');
+  assert.equal(clickAction({ cluster: true, event: {} }, false), 'zoom');
+  assert.equal(clickAction(null, true), 'close');
+  assert.equal(clickAction(null, false), 'none');
+  const event = {};
+  assert.equal(clickAction({ event }, true, event), 'close');
+  assert.equal(clickAction({ event }, false), 'none');
 });

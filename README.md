@@ -17,6 +17,10 @@ Live: <https://schmidt-software.github.io/world-info/>
 - Markers keep their size on screen at every zoom level; dense layers (ships,
   aircraft) are grouped into clusters while zoomed out, and clicking a cluster
   zooms in
+- Map views by zoom level: the map-style globe, satellite imagery from zoom
+  level 4 and an OpenStreetMap street map from level 9; the panel can fix a
+  view (Map, Satellite, Satellite today, Streets) and the footer credits the
+  visible map providers
 - Zoom from the whole globe down to about 1 km above the ground with the mouse
   wheel, trackpad or touch pinch, the + and - keys or the zoom buttons; the
   point under the pointer stays in place
@@ -110,6 +114,8 @@ site/
     mapstyle.js  draws land and water into the globe texture
     mapgeometry.js antimeridian, polar rings and label anchors
     labels.js    country name labels with fading and decluttering
+    tiles.js     map tiles on the globe (three-slippy-map-globe)
+    mapviews.js  map views, tile providers and their zoom levels
 scripts/
   fetch-data.mjs             runs all snapshot sources, writes site/data/
   sources/                   one module per snapshot source
@@ -134,6 +140,20 @@ All sources were checked on 2026-10-24.
 | Disaster alerts | [GDACS](https://www.gdacs.org/) | `gdacsapi/api/events/geteventlist/SEARCH` | 15 min | Attribution required, see the GDACS terms of use |
 | ISS position | [wheretheiss.at](https://wheretheiss.at/w/developer) | `v1/satellites/25544` | 5 s | Free, about 1 request per second |
 | Land, borders, country names | [Natural Earth](https://www.naturalearthdata.com/) 1:50m via [world-atlas](https://github.com/topojson/world-atlas) | `countries-50m.json` | once | Public domain |
+
+### Map tiles
+
+| View | Provider | Zoom levels | Key | License / terms |
+|---|---|---|---|---|
+| Satellite | [NASA GIBS](https://www.earthdata.nasa.gov/engage/open-data-services-software/earthdata-developer-portal/gibs-api) `BlueMarble_ShadedRelief_Bathymetry` | 4 to 8 in auto | no | Public domain |
+| Satellite today | NASA GIBS `VIIRS_SNPP_CorrectedReflectance_TrueColor` | when chosen, up to 9 | no | Public domain; before 20:00 UTC the previous day is shown |
+| Streets | [OpenStreetMap](https://www.openstreetmap.org/copyright) standard tiles | 9 and more in auto | no | ODbL, attribution required; [tile usage policy](https://operations.osmfoundation.org/policies/tiles/) |
+
+Tiles are loaded with [three-slippy-map-globe](https://github.com/vasturiano/three-slippy-map-globe)
+(MIT). Following the OSM tile policy, only tiles in view are requested: while
+the camera moves within one zoom level at most every 300 ms, and across levels
+only after it has rested for 250 ms, so flying or zooming does not fetch
+intermediate levels. Nothing is prefetched or stored for offline use.
 
 ### Snapshot layers
 

@@ -30,6 +30,8 @@ Live: <https://schmidt-software.github.io/world-info/>
   button that flies the globe to the event; clicking a layer in the panel opens
   the list filtered to that layer
 - Layers can be toggled; every layer refreshes on its own interval
+- The layer panel folds down to its title and the event list link; phones
+  start with it folded so the globe stays visible
 
 ## How data gets to the page
 
@@ -103,6 +105,7 @@ site/
     main.js      wires layers, UI panel, tooltip and refresh timers
     eventlist.js searchable list of all loaded events
     format.js    date formatting shared by tooltip and list
+    panel.js     collapsible layer panel
     zoom.js      wheel, pinch, button and key zoom with a fixed anchor
     altitude.js  altitude limits, zoom steps and slippy map zoom level
     globe.js     scene, camera, controls, globe shader, borders

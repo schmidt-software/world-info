@@ -158,6 +158,24 @@ the camera moves within one zoom level at most every 300 ms, and across levels
 only after it has rested for 250 ms, so flying or zooming does not fetch
 intermediate levels. Nothing is prefetched or stored for offline use.
 
+Budgets and failures:
+
+- Each tile layer keeps at most 150 tile textures; past that it is cleared and
+  reloads its view from the browser cache. Dropped tiles free their GPU
+  textures.
+- Above an altitude of one globe radius tiles stop at zoom level 3, which is
+  as sharp as the overview can show (about 50 tiles instead of 160).
+- Tiles fade in over 250 ms as they arrive; the globe and its markers never
+  wait for them.
+- A provider counts as failed after five errors within a minute that outnumber
+  its successes. Its view then falls back to the next lower one (streets and
+  today's imagery to satellite, satellite to the plain map), the panel says
+  so, and the provider is tried again after five minutes.
+- Concurrent tile requests are not limited by the page. The library loads
+  through three.js's shared texture loader, and both OpenStreetMap and NASA
+  GIBS serve over HTTP/2, so the browser multiplexes the requests on one
+  connection per host; the request rules above keep their number low.
+
 ### Snapshot layers
 
 | Layer | Source | Endpoint | Key | License / terms |

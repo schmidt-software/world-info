@@ -13,6 +13,9 @@ Live: <https://schmidt-software.github.io/world-info/>
   warnings for Germany and the rest of Europe, ships in the Baltic Sea, natural
   events, disaster alerts and the live ISS position
 - Events from the last hour pulse
+- Zoom from the whole globe down to about 1 km above the ground with the mouse
+  wheel, trackpad or touch pinch, the + and - keys or the zoom buttons; the
+  point under the pointer stays in place
 - Hover a marker for details, click it to open the source page
 - "List all events" in the panel opens a searchable list of every loaded event,
   filterable by layer, with a link to each event's source page; clicking a
@@ -91,6 +94,8 @@ site/
     main.js      wires layers, UI panel, tooltip and refresh timers
     eventlist.js searchable list of all loaded events
     format.js    date formatting shared by tooltip and list
+    zoom.js      wheel, pinch, button and key zoom with a fixed anchor
+    altitude.js  altitude limits, zoom steps and slippy map zoom level
     globe.js     scene, camera, controls, globe shader, borders
     markers.js   one instanced marker layer per data source
     sources.js   browser layers, all normalized to one event shape

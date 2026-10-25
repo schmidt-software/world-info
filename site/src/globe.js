@@ -1,29 +1,38 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { mesh } from 'topojson-client';
+import { feature, mesh } from 'topojson-client';
 import { DEFAULT_ALTITUDE, MAX_ALTITUDE, MIN_ALTITUDE } from './altitude.js';
 import { latLonToVector3, subsolarPoint } from './geo.js';
+import { drawMapTexture, MAP_COLORS } from './mapstyle.js';
 
-const WORLD_ATLAS_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json';
+// Natural Earth 1:50m: detailed enough for the zoomed-in overview, about
+// 240 KB compressed. It contains both the land and the country outlines.
+const WORLD_ATLAS_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-50m.json';
 
 const globeVertexShader = /* glsl */ `
   varying vec3 vNormal;
+  varying vec2 vUv;
   void main() {
     vNormal = normalize(normal);
+    vUv = uv;
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
   }
 `;
 
 // The globe is never rotated (the camera orbits instead), so object-space
 // normals can be compared with the world-space sun direction directly.
+// The night side keeps half of the map colors, so land and water stay
+// distinguishable there as well.
 const globeFragmentShader = /* glsl */ `
   uniform vec3 sunDirection;
+  uniform sampler2D map;
   varying vec3 vNormal;
+  varying vec2 vUv;
   void main() {
     float light = dot(normalize(vNormal), sunDirection);
     float day = smoothstep(-0.12, 0.12, light);
-    vec3 nightColor = vec3(0.015, 0.03, 0.07);
-    vec3 dayColor = vec3(0.05, 0.16, 0.30);
+    vec3 dayColor = texture2D(map, vUv).rgb;
+    vec3 nightColor = dayColor * 0.5 + vec3(0.0, 0.004, 0.012);
     gl_FragColor = vec4(mix(nightColor, dayColor, day), 1.0);
   }
 `;
@@ -80,7 +89,7 @@ export class Globe {
     this.globeMesh = new THREE.Mesh(
       new THREE.SphereGeometry(1, ...GLOBE_SEGMENTS),
       new THREE.ShaderMaterial({
-        uniforms: { sunDirection: { value: this.sunDirection } },
+        uniforms: { sunDirection: { value: this.sunDirection }, map: { value: oceanTexture() } },
         vertexShader: globeVertexShader,
         fragmentShader: globeFragmentShader,
       }),
@@ -107,15 +116,25 @@ export class Globe {
     window.addEventListener('resize', () => this.resize());
   }
 
-  async loadBorders() {
+  // Loads Natural Earth once: draws land and water into the globe texture,
+  // adds coastlines and borders, and returns the countries for labels.
+  async loadMap() {
     const response = await fetch(WORLD_ATLAS_URL);
     if (!response.ok) throw new Error(`world-atlas: HTTP ${response.status}`);
     const world = await response.json();
+
+    const land = feature(world, world.objects.land);
+    const texture = new THREE.CanvasTexture(drawMapTexture(land.features?.[0]?.geometry ?? land.geometry));
+    // No color space conversion: the shader writes the hex colors of
+    // MAP_COLORS unchanged, as it did with its former fixed colors.
+    texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
+    this.globeMesh.material.uniforms.map.value = texture;
 
     const coastlines = mesh(world, world.objects.land);
     const borders = mesh(world, world.objects.countries, (a, b) => a !== b);
     this.scene.add(createLines(coastlines, LINE_RADIUS, 0x7fb4e8, 0.9));
     this.scene.add(createLines(borders, LINE_RADIUS, 0x7fb4e8, 0.35));
+    return feature(world, world.objects.countries);
   }
 
   updateSun(date) {
@@ -150,6 +169,17 @@ export class Globe {
       this.renderer.render(this.scene, this.camera);
     });
   }
+}
+
+// Until Natural Earth has loaded, the globe shows plain ocean.
+function oceanTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1;
+  canvas.height = 1;
+  const context = canvas.getContext('2d');
+  context.fillStyle = MAP_COLORS.ocean;
+  context.fillRect(0, 0, 1, 1);
+  return new THREE.CanvasTexture(canvas);
 }
 
 function createLines(multiLineString, radius, color, opacity) {

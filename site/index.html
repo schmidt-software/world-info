@@ -26,14 +26,23 @@
   <div id="labels" aria-hidden="true"></div>
 
   <aside id="panel">
-    <h1>World Info</h1>
-    <p class="subtitle">Events happening on Earth right now</p>
+    <div class="panel-header">
+      <h1>World Info</h1>
+      <button id="panel-toggle" type="button" aria-expanded="true" aria-controls="panel-body" aria-label="Collapse panel" title="Collapse panel">
+        <span aria-hidden="true">&#9662;</span>
+      </button>
+    </div>
     <button id="show-events" class="text-button" type="button">List all events</button>
-    <label class="map-view">Map view
-      <select id="map-view"></select>
-    </label>
-    <ul id="layers"></ul>
-    <p id="clock"></p>
+    <div id="panel-body">
+      <div class="panel-body-inner">
+        <p class="subtitle">Events happening on Earth right now</p>
+        <label class="map-view">Map view
+          <select id="map-view"></select>
+        </label>
+        <ul id="layers"></ul>
+        <p id="clock"></p>
+      </div>
+    </div>
   </aside>
 
   <section id="events-view" hidden aria-labelledby="events-title">

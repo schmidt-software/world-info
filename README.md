@@ -14,13 +14,17 @@ Live: <https://schmidt-software.github.io/world-info/>
   warnings for Germany and the rest of Europe, ships in the Baltic Sea, natural
   events, disaster alerts and the live ISS position
 - Events from the last hour pulse
+- Markers keep their size on screen at every zoom level; dense layers (ships,
+  aircraft) are grouped into clusters while zoomed out, and clicking a cluster
+  zooms in
 - Zoom from the whole globe down to about 1 km above the ground with the mouse
   wheel, trackpad or touch pinch, the + and - keys or the zoom buttons; the
   point under the pointer stays in place
 - Hover a marker for details, click it to open the source page
 - "List all events" in the panel opens a searchable list of every loaded event,
-  filterable by layer, with a link to each event's source page; clicking a
-  layer in the panel opens the list filtered to that layer
+  filterable by layer, with a link to each event's source page and a "Map"
+  button that flies the globe to the event; clicking a layer in the panel opens
+  the list filtered to that layer
 - Layers can be toggled; every layer refreshes on its own interval
 
 ## How data gets to the page
@@ -98,7 +102,8 @@ site/
     zoom.js      wheel, pinch, button and key zoom with a fixed anchor
     altitude.js  altitude limits, zoom steps and slippy map zoom level
     globe.js     scene, camera, controls, globe shader, borders
-    markers.js   one instanced marker layer per data source
+    markers.js   one instanced marker layer per data source, sized in pixels
+    screen.js    occlusion, clustering and picking in screen space
     sources.js   browser layers, all normalized to one event shape
     snapshots.js snapshot layers listed in data/manifest.json
     geo.js       coordinate conversion and subsolar point

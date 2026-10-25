@@ -28,6 +28,16 @@ const FADE_LEVELS = 1;
 // not delay a new level, so the auto-rotating globe still gets its tiles.
 const POV_INTERVAL_MS = 300;
 const SETTLE_MS = 250;
+// Budgets (#32): at most this many tile textures per layer; when a session
+// of zooming collects more, the layer is cleared and reloads its view from
+// the browser cache. Each tile fades in over TILE_FADE_MS when it arrives.
+const MAX_TILE_TEXTURES = 150;
+const TILE_FADE_MS = 250;
+// At the overview the globe fills only part of the screen, so zoom level 3
+// (about 50 tiles for the visible hemisphere) is as sharp as it can show;
+// the altitude formula alone would pick level 4 with about 160 tiles.
+const OVERVIEW_ALTITUDE = 1;
+const OVERVIEW_MAX_LEVEL = 3;
 
 // The tile group is rotated (see TileLayer), so normals are taken to world
 // space before they are compared with the sun direction.
@@ -48,6 +58,7 @@ const tileFragmentShader = /* glsl */ `
   uniform sampler2D map;
   uniform vec3 sunDirection;
   uniform float opacity;
+  uniform float fade;
   uniform float nightFactor;
   varying vec3 vNormal;
   varying vec2 vUv;
@@ -56,7 +67,7 @@ const tileFragmentShader = /* glsl */ `
     float day = smoothstep(-0.12, 0.12, light);
     vec3 dayColor = texture2D(map, vUv).rgb;
     vec3 nightColor = dayColor * nightFactor + vec3(0.0, 0.004, 0.012);
-    gl_FragColor = vec4(mix(nightColor, dayColor, day), opacity);
+    gl_FragColor = vec4(mix(nightColor, dayColor, day), opacity * fade);
   }
 `;
 
@@ -73,6 +84,7 @@ export class TileLayer {
     this.previousAltitude = 0;
     this.lastCamera = new THREE.Vector3();
     this.requestedLevel = -1;
+    this.fading = new Set();
 
     this.tiles = new SlippyMapGlobe(1, {
       tileUrl: (x, y, z) => provider.url(x, y, z),
@@ -115,6 +127,7 @@ export class TileLayer {
         map: { value: texture },
         sunDirection: { value: this.globe.sunDirection },
         opacity: this.opacity,
+        fade: { value: 0 },
         nightFactor: { value: this.provider.nightFactor ?? 0.5 },
       },
       vertexShader: tileVertexShader,
@@ -132,6 +145,8 @@ export class TileLayer {
     object.material.addEventListener('dispose', () => texture.dispose());
     object.renderOrder = this.provider.above ? 2 : 1;
     object.userData.restyled = true;
+    object.userData.fadeStart = null;
+    this.fading.add(object);
     return object;
   }
 
@@ -142,6 +157,27 @@ export class TileLayer {
 
   get fullyVisible() {
     return this.tiles.visible && this.opacity.value >= 1;
+  }
+
+  // Tiles fade in when they arrive instead of popping up.
+  advanceFades(time) {
+    for (const tile of this.fading) {
+      tile.userData.fadeStart ??= time;
+      const fade = Math.min(1, (time - tile.userData.fadeStart) / TILE_FADE_MS);
+      tile.material.uniforms.fade.value = fade;
+      if (fade >= 1) this.fading.delete(tile);
+    }
+  }
+
+  // The library keeps tiles of coarser levels while zooming in. Past the
+  // budget the layer is cleared; the view reloads from the browser cache.
+  enforceBudget() {
+    const tiles = this.tiles.children.length - 1; // minus the back sphere
+    if (tiles <= MAX_TILE_TEXTURES) return;
+    this.tiles.clearTiles();
+    this.fading.clear();
+    this.lastCamera.set(0, 0, 0);
+    this.requestedLevel = -1;
   }
 
   // Called every frame with the zoom level from which the layer fades in
@@ -164,10 +200,14 @@ export class TileLayer {
     }
     if (!visible) return;
 
+    this.advanceFades(time);
+    this.enforceBudget();
+
     // OrbitControls recomputes the camera position every frame, which leaves
     // rounding noise even at rest; changes are measured against tolerances
     // that scale with the altitude.
     const altitude = camera.position.length() - 1;
+    this.tiles.maxLevel = maxLevelAt(altitude, this.provider);
     if (Math.abs(altitude - this.previousAltitude) > altitude * 1e-3) {
       this.previousAltitude = altitude;
       this.lastAltitudeChange = time;
@@ -188,5 +228,9 @@ export class TileLayer {
 // The level the library picks for an altitude (first threshold below it).
 function levelFor(altitude, provider) {
   const index = THRESHOLDS.findIndex((threshold) => threshold <= altitude);
-  return Math.min(provider.maxZoom, Math.max(provider.minLevel ?? 0, index < 0 ? THRESHOLDS.length : index));
+  return Math.min(maxLevelAt(altitude, provider), Math.max(provider.minLevel ?? 0, index < 0 ? THRESHOLDS.length : index));
+}
+
+function maxLevelAt(altitude, provider) {
+  return altitude > OVERVIEW_ALTITUDE ? Math.min(provider.maxZoom, OVERVIEW_MAX_LEVEL) : provider.maxZoom;
 }

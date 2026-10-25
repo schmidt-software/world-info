@@ -125,6 +125,11 @@ export class TileLayer {
       polygonOffsetFactor: -1,
       polygonOffsetUnits: -2,
     });
+    // The library frees material.map when it drops a tile; this material
+    // keeps the texture in a uniform, so it frees it itself. Without this,
+    // every dropped tile left its texture on the GPU (595 textures after
+    // three zoom sessions).
+    object.material.addEventListener('dispose', () => texture.dispose());
     object.renderOrder = this.provider.above ? 2 : 1;
     object.userData.restyled = true;
     return object;

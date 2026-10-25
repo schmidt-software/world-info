@@ -18,6 +18,12 @@ export function altitudeAfterWheel(altitude, deltaY) {
   return clampAltitude(altitude * Math.exp(deltaY * WHEEL_FACTOR));
 }
 
+// A pinch scales the altitude it started at by the change in finger
+// distance: fingers twice as far apart halve the altitude.
+export function altitudeAfterPinch(startAltitude, startDistance, distance) {
+  return clampAltitude(startAltitude * (startDistance / distance));
+}
+
 // A drag across the full screen height should move the map by roughly the
 // visible distance: OrbitControls rotates 2 * PI * rotateSpeed per screen
 // height, and a 45 degree camera sees about 0.83 * altitude radians.

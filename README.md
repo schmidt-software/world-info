@@ -8,7 +8,8 @@ Live: <https://schmidt-software.github.io/world-info/>
 
 ## Features
 
-- Globe with coastlines and country borders and a live day/night terminator
+- Map-style globe with land, water, coastlines, country borders and country
+  names, and a live day/night terminator
 - Earthquakes (Europe live via EMSC, rest of the world via USGS), weather
   warnings for Germany and the rest of Europe, ships in the Baltic Sea, natural
   events, disaster alerts and the live ISS position
@@ -101,6 +102,9 @@ site/
     sources.js   browser layers, all normalized to one event shape
     snapshots.js snapshot layers listed in data/manifest.json
     geo.js       coordinate conversion and subsolar point
+    mapstyle.js  draws land and water into the globe texture
+    mapgeometry.js antimeridian, polar rings and label anchors
+    labels.js    country name labels with fading and decluttering
 scripts/
   fetch-data.mjs             runs all snapshot sources, writes site/data/
   sources/                   one module per snapshot source
@@ -124,7 +128,7 @@ All sources were checked on 2026-10-24.
 | Natural events | [NASA EONET v3](https://eonet.gsfc.nasa.gov/docs/v3) | `events?status=open&days=30` | 15 min | Public domain |
 | Disaster alerts | [GDACS](https://www.gdacs.org/) | `gdacsapi/api/events/geteventlist/SEARCH` | 15 min | Attribution required, see the GDACS terms of use |
 | ISS position | [wheretheiss.at](https://wheretheiss.at/w/developer) | `v1/satellites/25544` | 5 s | Free, about 1 request per second |
-| Borders | [Natural Earth](https://www.naturalearthdata.com/) via [world-atlas](https://github.com/topojson/world-atlas) | `countries-110m.json` | once | Public domain |
+| Land, borders, country names | [Natural Earth](https://www.naturalearthdata.com/) 1:50m via [world-atlas](https://github.com/topojson/world-atlas) | `countries-50m.json` | once | Public domain |
 
 ### Snapshot layers
 

@@ -38,6 +38,11 @@ const TILE_FADE_MS = 250;
 // the altitude formula alone would pick level 4 with about 160 tiles.
 const OVERVIEW_ALTITUDE = 1;
 const OVERVIEW_MAX_LEVEL = 3;
+// A provider counts as failed after this many errors within FAILURE_WINDOW_MS
+// when they outnumber its successes; it is tried again after RETRY_MS.
+const FAILURE_COUNT = 5;
+const FAILURE_WINDOW_MS = 60 * 1000;
+const RETRY_MS = 5 * 60 * 1000;
 
 // The tile group is rotated (see TileLayer), so normals are taken to world
 // space before they are compared with the sun direction.
@@ -85,6 +90,9 @@ export class TileLayer {
     this.lastCamera = new THREE.Vector3();
     this.requestedLevel = -1;
     this.fading = new Set();
+    this.results = [];
+    this.failedAt = null;
+    layers.add(this);
 
     this.tiles = new SlippyMapGlobe(1, {
       tileUrl: (x, y, z) => provider.url(x, y, z),
@@ -180,6 +188,34 @@ export class TileLayer {
     this.requestedLevel = -1;
   }
 
+  // Counts arrivals and errors of this layer's tiles over the last minute.
+  recordResult(ok) {
+    const now = performance.now();
+    this.results.push({ ok, at: now });
+    this.results = this.results.filter((result) => now - result.at < FAILURE_WINDOW_MS);
+    const errors = this.results.filter((result) => !result.ok).length;
+    if (this.failedAt === null && errors >= FAILURE_COUNT && errors * 2 > this.results.length) {
+      this.failedAt = now;
+      console.warn(`Map tiles from ${this.provider.id} keep failing; switching to another view for a while.`);
+    }
+  }
+
+  // A failed provider is retried after RETRY_MS. Its failed tiles are
+  // dropped then, because the library never asks for a failed tile again.
+  get failed() {
+    if (this.failedAt === null) return false;
+    if (performance.now() - this.failedAt < RETRY_MS) return true;
+    this.failedAt = null;
+    this.results = [];
+    this.tiles.clearTiles();
+    return false;
+  }
+
+  // Start of this provider's tile URLs, to attribute loads to the layer.
+  urlPrefix() {
+    return this.provider.url(0, 0, 0).replace(/0\/0\/0[^/]*$/, '');
+  }
+
   // Called every frame with the zoom level from which the layer fades in
   // (see mapviews.js), or null when its view is off. A layer that is off or
   // faded out requests nothing.
@@ -233,4 +269,26 @@ function levelFor(altitude, provider) {
 
 function maxLevelAt(altitude, provider) {
   return altitude > OVERVIEW_ALTITUDE ? Math.min(provider.maxZoom, OVERVIEW_MAX_LEVEL) : provider.maxZoom;
+}
+
+// Tile loads go through three.js's default loading manager; its callbacks
+// tell each layer which of its tiles arrived and which failed. The manager
+// reports the end of every load through onProgress, after onError for a
+// failed one, so failed URLs are remembered and not counted twice.
+const layers = new Set();
+const failedUrls = new Set();
+THREE.DefaultLoadingManager.onError = (url) => {
+  failedUrls.add(url);
+  layerFor(url)?.recordResult(false);
+};
+THREE.DefaultLoadingManager.onProgress = (url) => {
+  if (failedUrls.delete(url)) return;
+  layerFor(url)?.recordResult(true);
+};
+
+function layerFor(url) {
+  for (const layer of layers) {
+    if (url.startsWith(layer.urlPrefix())) return layer;
+  }
+  return null;
 }

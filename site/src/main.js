@@ -1,7 +1,7 @@
 import { EventList } from './eventlist.js';
 import { formatAge, formatTime } from './format.js';
 import { vector3ToLatLon } from './geo.js';
-import { isView, PROVIDERS, providerMinZooms, satelliteDate, VIEWS } from './mapviews.js';
+import { fallbackNotice, isView, PROVIDERS, providerMinZooms, satelliteDate, VIEWS } from './mapviews.js';
 import { Globe } from './globe.js';
 import { CountryLabels } from './labels.js';
 import { MarkerLayer, markerGrowth, updateMarkerView } from './markers.js';
@@ -54,8 +54,15 @@ viewSelect.addEventListener('change', () => {
 const mapCredits = document.getElementById('map-credits');
 let shownCredits = '';
 
+const viewNotice = document.getElementById('map-view-notice');
+
 globe.onFrame((time) => {
-  const minZooms = providerMinZooms(mapView, zoom.zoomLevel);
+  // Providers whose tiles keep failing are replaced by the next lower view.
+  const failed = new Set(Object.entries(tileLayers).filter(([, layer]) => layer.failed).map(([id]) => id));
+  const notice = fallbackNotice(mapView, failed);
+  viewNotice.hidden = !notice;
+  if (notice && viewNotice.textContent !== notice) viewNotice.textContent = notice;
+  const minZooms = providerMinZooms(mapView, zoom.zoomLevel, failed);
   if (minZooms.today !== null) useSatelliteDate(satelliteDate(Date.now()));
   for (const [id, layer] of Object.entries(tileLayers)) layer.update(globe.camera, minZooms[id], time);
   const streetsCover = tileLayers.streets.fullyVisible;

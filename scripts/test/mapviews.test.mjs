@@ -3,7 +3,7 @@
 
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { isView, PROVIDERS, providerMinZooms, satelliteDate } from '../../site/src/mapviews.js';
+import { fallbackNotice, isView, PROVIDERS, providerMinZooms, satelliteDate } from '../../site/src/mapviews.js';
 
 test('map views: auto shows satellite from level 4 and streets from level 9', () => {
   assert.deepEqual(providerMinZooms('auto', 3), { satellite: 4, today: null, streets: 9 });
@@ -36,4 +36,22 @@ test('map views: tile URLs follow each provider scheme', () => {
 test('map views: only known views are accepted', () => {
   assert.equal(isView('streets'), true);
   assert.equal(isView('terrain'), false);
+});
+
+test('map views: a failed street map falls back to satellite imagery', () => {
+  assert.deepEqual(providerMinZooms('auto', 12, new Set(['streets'])), { satellite: 4, today: null, streets: null });
+  assert.deepEqual(providerMinZooms('streets', 12, new Set(['streets'])), { satellite: 0, today: null, streets: null });
+});
+
+test('map views: failed imagery falls back to satellite, failed satellite to the map', () => {
+  assert.deepEqual(providerMinZooms('today', 3, new Set(['today'])), { satellite: 0, today: null, streets: null });
+  assert.deepEqual(providerMinZooms('satellite', 3, new Set(['satellite'])), { satellite: null, today: null, streets: null });
+  assert.deepEqual(providerMinZooms('streets', 12, new Set(['streets', 'satellite'])), { satellite: null, today: null, streets: null });
+});
+
+test('map views: the panel names only failures of the chosen view', () => {
+  assert.equal(fallbackNotice('auto', new Set()), null);
+  assert.match(fallbackNotice('auto', new Set(['streets'])), /^Street map unavailable/);
+  assert.equal(fallbackNotice('map', new Set(['streets'])), null);
+  assert.match(fallbackNotice('today', new Set(['today'])), /^Today's imagery unavailable/);
 });

@@ -349,3 +349,44 @@ body {
     display: inline;
   }
 }
+
+/* Zoom buttons, bottom right above the credits. */
+#zoom-controls {
+  position: fixed;
+  right: 16px;
+  bottom: 40px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  backdrop-filter: blur(8px);
+}
+
+#zoom-controls button {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+#zoom-controls button + button {
+  border-top: 1px solid var(--border);
+}
+
+#zoom-controls button:hover,
+#zoom-controls button:focus-visible {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* The open event list covers this corner; the globe is not usable then anyway. */
+#events-view:not([hidden]) ~ #zoom-controls {
+  display: none;
+}

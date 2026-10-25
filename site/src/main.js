@@ -5,6 +5,7 @@ import { Globe } from './globe.js';
 import { MarkerLayer } from './markers.js';
 import { loadSnapshotSources } from './snapshots.js';
 import { sources } from './sources.js';
+import { ZoomController } from './zoom.js';
 
 const globe = new Globe(document.getElementById('globe'));
 const layers = [];
@@ -13,6 +14,10 @@ const tooltip = document.getElementById('tooltip');
 const clock = document.getElementById('clock');
 const snapshotCredits = document.getElementById('snapshot-credits');
 const eventList = new EventList({ getLayers: () => layers });
+const zoom = new ZoomController(globe);
+document.getElementById('zoom-in').addEventListener('click', () => zoom.zoomIn());
+document.getElementById('zoom-out').addEventListener('click', () => zoom.zoomOut());
+document.getElementById('zoom-reset').addEventListener('click', () => zoom.reset());
 
 sources.forEach(addLayer);
 loadSnapshotSources()

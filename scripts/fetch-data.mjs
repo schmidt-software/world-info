@@ -48,6 +48,8 @@ async function runSource(source) {
     label: source.label,
     color: source.color,
     pulse: source.pulse ?? true,
+    cluster: source.cluster ?? false,
+    clusterNoun: source.clusterNoun,
     attribution: source.attribution,
     requiredEnv: source.requiredEnv ?? [],
   };

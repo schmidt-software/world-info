@@ -23,6 +23,8 @@ export default {
   label: 'Aircraft over Europe (OpenSky)',
   color: 0xe2e8f0,
   pulse: false,
+  cluster: true,
+  clusterNoun: 'aircraft',
   attribution: 'OpenSky Network',
   requiredEnv: ['OPENSKY_CLIENT_ID', 'OPENSKY_CLIENT_SECRET'],
   async fetch(env) {

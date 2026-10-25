@@ -13,11 +13,13 @@ import {
   rotateSpeedFor,
   zoomLevelFor,
 } from './altitude.js';
+import { latLonToVector3 } from './geo.js';
 
 // Share of the remaining zoom applied per frame; gives a short ease-out.
 const SMOOTHING = 0.25;
 const BUTTON_STEP = 2;
 const ANCHOR_ITERATIONS = 3;
+const FLIGHT_MS = 1500;
 
 const tempRay = new THREE.Ray();
 const tempNdc = new THREE.Vector2();
@@ -34,6 +36,7 @@ export class ZoomController {
     this.targetAltitude = this.altitude;
     this.anchor = null;
     this.touches = new Map();
+    this.flight = null;
     this.pinchDistance = null;
 
     globe.controls.enableZoom = false;
@@ -83,6 +86,7 @@ export class ZoomController {
 
   onWheel(event) {
     event.preventDefault();
+    this.flight = null;
     // Trackpads report pinch gestures as wheel events with ctrlKey set and
     // small deltas; scale them up so pinching feels like the wheel.
     const delta = event.ctrlKey ? event.deltaY * 8 : event.deltaY;
@@ -92,6 +96,7 @@ export class ZoomController {
   }
 
   onPointerDown(event) {
+    this.flight = null;
     if (event.pointerType !== 'touch') return;
     this.touches.set(event.pointerId, { x: event.clientX, y: event.clientY });
     this.pinchDistance = this.touches.size === 2 ? this.touchDistance() : null;
@@ -123,7 +128,46 @@ export class ZoomController {
     else if (event.key === '-' || event.key === '_') this.zoomOut();
   }
 
+  // Flies the camera to look straight down at (lat, lon) from `altitude`,
+  // turning and zooming together with an ease-in-out. Any wheel or drag
+  // input cancels the flight.
+  flyTo(lat, lon, altitude, duration = FLIGHT_MS) {
+    const direction = latLonToVector3(lat, lon, 1).normalize();
+    this.flight = {
+      start: performance.now(),
+      duration,
+      fromDirection: this.camera.position.clone().normalize(),
+      toDirection: direction,
+      fromAltitude: this.altitude,
+      toAltitude: clampAltitude(altitude),
+    };
+    this.anchor = null;
+    this.stopAutoRotate();
+  }
+
+  updateFlight() {
+    const flight = this.flight;
+    const progress = Math.min(1, (performance.now() - flight.start) / flight.duration);
+    const eased = progress < 0.5 ? 2 * progress * progress : 1 - ((-2 * progress + 2) ** 2) / 2;
+    tempQuaternion.setFromUnitVectors(flight.fromDirection, flight.toDirection);
+    const direction = flight.fromDirection.clone().applyQuaternion(
+      new THREE.Quaternion().slerp(tempQuaternion, eased),
+    );
+    const altitude = flight.fromAltitude * (flight.toAltitude / flight.fromAltitude) ** eased;
+    this.camera.position.copy(direction.multiplyScalar(1 + altitude));
+    this.camera.lookAt(origin);
+    this.camera.updateMatrixWorld();
+    this.targetAltitude = altitude;
+    if (progress >= 1) this.flight = null;
+  }
+
   update() {
+    if (this.flight) {
+      this.updateFlight();
+      this.globe.controls.rotateSpeed = rotateSpeedFor(this.altitude);
+      this.updateDepthRange();
+      return;
+    }
     const current = this.altitude;
     const remaining = Math.log(this.targetAltitude / current);
     if (Math.abs(remaining) > 1e-4) {

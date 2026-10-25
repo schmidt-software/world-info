@@ -5,7 +5,9 @@ import { EUROPE_BBOX, isInBbox } from './geo.js';
 // Every source returns events in one normalized shape:
 // { id, lat, lon, title, detail, time: Date, url, size }
 // `size` is a relative marker scale between roughly 0.3 and 2.
-// A source may also offer `subscribe(onEvent)` for pushed live updates.
+// A source may also offer `subscribe(onEvent)` for pushed live updates, and
+// set `cluster` (with a `clusterNoun` such as "ships") to group its markers
+// on screen while zoomed out.
 
 const MINUTE = 60 * 1000;
 
@@ -132,6 +134,8 @@ export const balticShips = {
   color: 0x22d3ee,
   refreshMs: 2 * MINUTE,
   pulse: false,
+  cluster: true,
+  clusterNoun: 'ships',
   async fetch() {
     const [locations, vessels] = await Promise.all([
       fetchJson('https://meri.digitraffic.fi/api/ais/v1/locations', DIGITRAFFIC_HEADERS),

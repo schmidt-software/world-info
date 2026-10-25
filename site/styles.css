@@ -537,3 +537,11 @@ body {
     transition: none;
   }
 }
+
+/* On narrow screens the credits wrap to two lines; the zoom buttons move up
+   so they stay clear of them. */
+@media (max-width: 720px) {
+  #zoom-controls {
+    bottom: 72px;
+  }
+}

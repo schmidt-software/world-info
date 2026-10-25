@@ -1,9 +1,9 @@
-import * as THREE from 'three';
 import { EventList } from './eventlist.js';
 import { formatAge, formatTime } from './format.js';
+import { vector3ToLatLon } from './geo.js';
 import { Globe } from './globe.js';
 import { CountryLabels } from './labels.js';
-import { MarkerLayer } from './markers.js';
+import { MarkerLayer, markerGrowth, updateMarkerView } from './markers.js';
 import { loadSnapshotSources } from './snapshots.js';
 import { sources } from './sources.js';
 import { ZoomController } from './zoom.js';
@@ -14,7 +14,7 @@ const layerList = document.getElementById('layers');
 const tooltip = document.getElementById('tooltip');
 const clock = document.getElementById('clock');
 const snapshotCredits = document.getElementById('snapshot-credits');
-const eventList = new EventList({ getLayers: () => layers });
+const eventList = new EventList({ getLayers: () => layers, onShow: showOnMap });
 const zoom = new ZoomController(globe);
 document.getElementById('zoom-in').addEventListener('click', () => zoom.zoomIn());
 document.getElementById('zoom-out').addEventListener('click', () => zoom.zoomOut());
@@ -27,6 +27,12 @@ loadSnapshotSources()
 
 const countryLabels = new CountryLabels(document.getElementById('labels'), globe.camera);
 globe.onFrame(() => countryLabels.update());
+// Marker sizes and clusters depend on the camera, so they follow it every frame.
+globe.onFrame((time) => {
+  const viewport = viewportSize();
+  updateMarkerView(globe.camera, viewport.height, zoom.altitude);
+  for (const layer of layers) layer.updateView(globe.camera, viewport, zoom.zoomLevel, time);
+});
 globe.loadMap()
   .then((countries) => countryLabels.setCountries(countries))
   .catch((error) => console.error('Could not load the map', error));
@@ -138,32 +144,33 @@ function updateClock() {
   globe.updateSun(now);
 }
 
-// Tooltip: the globe itself is part of the raycast so that markers on the far
-// side are not picked through it.
-const raycaster = new THREE.Raycaster();
-const pointer = new THREE.Vector2();
-let hoveredEvent = null;
+// Tooltip and click: the marker nearest to the pointer on screen, among the
+// visible layers; markers behind the globe cannot be picked.
+let hoveredItem = null;
+
+function itemAt(x, y) {
+  const viewport = viewportSize();
+  const growth = markerGrowth();
+  let best = null;
+  for (const layer of layers) {
+    const hit = layer.pick(globe.camera, viewport, x, y, growth);
+    if (hit && (!best || hit.distance < best.distance)) best = hit;
+  }
+  return best?.item ?? null;
+}
 
 globe.renderer.domElement.addEventListener('pointermove', (domEvent) => {
-  pointer.set(
-    (domEvent.clientX / window.innerWidth) * 2 - 1,
-    -(domEvent.clientY / window.innerHeight) * 2 + 1,
-  );
-  raycaster.setFromCamera(pointer, globe.camera);
-  const targets = [globe.globeMesh, ...layers.filter((layer) => layer.group.visible).map((layer) => layer.group)];
-  const hit = raycaster.intersectObjects(targets, true).find((intersection) => intersection.object.isMesh);
-  hoveredEvent = hit?.object.userData.layer?.eventAt(hit.instanceId) ?? null;
-
-  if (!hoveredEvent) {
+  hoveredItem = itemAt(domEvent.clientX, domEvent.clientY);
+  if (!hoveredItem) {
     tooltip.hidden = true;
     globe.renderer.domElement.style.cursor = '';
     return;
   }
-  renderTooltip(hoveredEvent);
+  renderTooltip(hoveredItem.event);
   tooltip.style.left = `${Math.min(domEvent.clientX + 14, window.innerWidth - 300)}px`;
   tooltip.style.top = `${domEvent.clientY + 14}px`;
   tooltip.hidden = false;
-  globe.renderer.domElement.style.cursor = hoveredEvent.url ? 'pointer' : '';
+  globe.renderer.domElement.style.cursor = hoveredItem.cluster || hoveredItem.event.url ? 'pointer' : '';
 });
 
 // Browsers also fire click after a drag that rotated the globe. Only a press
@@ -178,9 +185,32 @@ globe.renderer.domElement.addEventListener('pointerdown', (domEvent) => {
 globe.renderer.domElement.addEventListener('click', (domEvent) => {
   const moved = pointerDownAt
     && Math.hypot(domEvent.clientX - pointerDownAt.x, domEvent.clientY - pointerDownAt.y) > CLICK_TOLERANCE_PX;
-  if (moved) return;
-  if (hoveredEvent?.url) window.open(hoveredEvent.url, '_blank', 'noopener');
+  if (moved || !hoveredItem) return;
+  if (hoveredItem.cluster) {
+    // A cluster zooms in towards its members until they separate.
+    const { lat, lon } = vector3ToLatLon(hoveredItem.position);
+    zoom.flyTo(lat, lon, zoom.altitude / 4, 900);
+  } else if (hoveredItem.event.url) {
+    window.open(hoveredItem.event.url, '_blank', 'noopener');
+  }
 });
+
+// From the event list: fly to the event, close enough to see it on its own,
+// and let its marker pulse for a few seconds.
+const SHOW_ON_MAP_ALTITUDE = 0.02;
+
+function showOnMap(source, event) {
+  zoom.flyTo(event.lat, event.lon, Math.min(zoom.altitude, SHOW_ON_MAP_ALTITUDE));
+  const layer = layers.find((candidate) => candidate.source === source);
+  if (!layer) return;
+  layer.group.visible = true;
+  layer.ui.toggle.checked = true;
+  layer.highlightEvent(event.id, performance.now() + 1500);
+}
+
+function viewportSize() {
+  return { width: globe.container.clientWidth, height: globe.container.clientHeight };
+}
 
 function renderTooltip(event) {
   const title = document.createElement('strong');

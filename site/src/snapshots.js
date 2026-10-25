@@ -17,6 +17,8 @@ export async function loadSnapshotSources() {
     label: layer.label,
     color: layer.color,
     pulse: layer.pulse,
+    cluster: layer.cluster,
+    clusterNoun: layer.clusterNoun,
     attribution: layer.attribution,
     // The files change only on redeployment, which can be hours apart.
     refreshMs: 5 * MINUTE,

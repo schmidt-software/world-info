@@ -21,6 +21,14 @@ export function latLonToVector3(lat, lon, radius = 1) {
   );
 }
 
+// Inverse of latLonToVector3 for a point at any distance from the centre.
+export function vector3ToLatLon(vector) {
+  const unit = vector.clone().normalize();
+  const lat = THREE.MathUtils.radToDeg(Math.asin(unit.y));
+  const lon = THREE.MathUtils.radToDeg(Math.atan2(unit.z, -unit.x)) - 180;
+  return { lat, lon: ((lon + 540) % 360) - 180 };
+}
+
 // Approximate subsolar point (NOAA general solar position formulas). The error
 // is well below one degree, which is enough for day/night shading.
 export function subsolarPoint(date) {

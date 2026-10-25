@@ -13,6 +13,8 @@ export default {
   label: 'Ships around Europe (aisstream.io, AIS)',
   color: 0x0891b2,
   pulse: false,
+  cluster: true,
+  clusterNoun: 'ships',
   attribution: 'aisstream.io',
   requiredEnv: ['AISSTREAM_API_KEY'],
   async fetch(env) {

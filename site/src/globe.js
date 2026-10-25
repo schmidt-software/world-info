@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { mesh } from 'topojson-client';
+import { DEFAULT_ALTITUDE, MAX_ALTITUDE, MIN_ALTITUDE } from './altitude.js';
 import { latLonToVector3, subsolarPoint } from './geo.js';
 
 const WORLD_ATLAS_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json';
@@ -28,12 +29,22 @@ const globeFragmentShader = /* glsl */ `
 `;
 
 const atmosphereFragmentShader = /* glsl */ `
+  uniform float opacity;
   varying vec3 vNormal;
   void main() {
     float intensity = pow(0.65 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 3.0);
-    gl_FragColor = vec4(0.3, 0.6, 1.0, 1.0) * intensity;
+    gl_FragColor = vec4(0.3, 0.6, 1.0, 1.0) * intensity * opacity;
   }
 `;
+
+// Borders and coastlines float slightly above the surface (about 600 m) so
+// they are not hidden by the globe. The globe is finely tessellated so that
+// its flat facets stay below this height when zoomed in close.
+const LINE_RADIUS = 1.0001;
+const GLOBE_SEGMENTS = [256, 128];
+// The atmosphere shell would tint the whole view from inside; it fades out
+// between these altitudes.
+const ATMOSPHERE_FADE = [0.15, 0.4];
 
 const atmosphereVertexShader = /* glsl */ `
   varying vec3 vNormal;
@@ -49,7 +60,7 @@ export class Globe {
     this.scene = new THREE.Scene();
 
     this.camera = new THREE.PerspectiveCamera(45, 1, 0.01, 100);
-    this.camera.position.copy(latLonToVector3(30, 15, 3.2));
+    this.camera.position.copy(latLonToVector3(30, 15, 1 + DEFAULT_ALTITUDE));
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -58,15 +69,16 @@ export class Globe {
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
     this.controls.enablePan = false;
-    this.controls.minDistance = 1.4;
-    this.controls.maxDistance = 6;
+    // Zooming is handled by ZoomController (zoom.js); these only bound it.
+    this.controls.minDistance = 1 + MIN_ALTITUDE;
+    this.controls.maxDistance = 1 + MAX_ALTITUDE;
     this.controls.autoRotate = true;
     this.controls.autoRotateSpeed = 0.3;
     this.controls.addEventListener('start', () => { this.controls.autoRotate = false; });
 
     this.sunDirection = new THREE.Vector3();
     this.globeMesh = new THREE.Mesh(
-      new THREE.SphereGeometry(1, 96, 64),
+      new THREE.SphereGeometry(1, ...GLOBE_SEGMENTS),
       new THREE.ShaderMaterial({
         uniforms: { sunDirection: { value: this.sunDirection } },
         vertexShader: globeVertexShader,
@@ -75,9 +87,10 @@ export class Globe {
     );
     this.scene.add(this.globeMesh);
 
-    this.scene.add(new THREE.Mesh(
+    this.atmosphere = new THREE.Mesh(
       new THREE.SphereGeometry(1.12, 64, 48),
       new THREE.ShaderMaterial({
+        uniforms: { opacity: { value: 1 } },
         vertexShader: atmosphereVertexShader,
         fragmentShader: atmosphereFragmentShader,
         blending: THREE.AdditiveBlending,
@@ -85,7 +98,8 @@ export class Globe {
         transparent: true,
         depthWrite: false,
       }),
-    ));
+    );
+    this.scene.add(this.atmosphere);
 
     this.frameCallbacks = [];
     this.updateSun(new Date());
@@ -100,13 +114,21 @@ export class Globe {
 
     const coastlines = mesh(world, world.objects.land);
     const borders = mesh(world, world.objects.countries, (a, b) => a !== b);
-    this.scene.add(createLines(coastlines, 1.002, 0x7fb4e8, 0.9));
-    this.scene.add(createLines(borders, 1.002, 0x7fb4e8, 0.35));
+    this.scene.add(createLines(coastlines, LINE_RADIUS, 0x7fb4e8, 0.9));
+    this.scene.add(createLines(borders, LINE_RADIUS, 0x7fb4e8, 0.35));
   }
 
   updateSun(date) {
     const { lat, lon } = subsolarPoint(date);
     this.sunDirection.copy(latLonToVector3(lat, lon)).normalize();
+  }
+
+  fadeAtmosphere() {
+    const altitude = this.camera.position.length() - 1;
+    const [hidden, full] = ATMOSPHERE_FADE;
+    const opacity = THREE.MathUtils.clamp((altitude - hidden) / (full - hidden), 0, 1);
+    this.atmosphere.material.uniforms.opacity.value = opacity;
+    this.atmosphere.visible = opacity > 0;
   }
 
   onFrame(callback) {
@@ -123,6 +145,7 @@ export class Globe {
   start() {
     this.renderer.setAnimationLoop((time) => {
       this.controls.update();
+      this.fadeAtmosphere();
       for (const callback of this.frameCallbacks) callback(time);
       this.renderer.render(this.scene, this.camera);
     });

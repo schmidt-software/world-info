@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { EventList } from './eventlist.js';
 import { formatAge, formatTime } from './format.js';
 import { Globe } from './globe.js';
+import { CountryLabels } from './labels.js';
 import { MarkerLayer } from './markers.js';
 import { loadSnapshotSources } from './snapshots.js';
 import { sources } from './sources.js';
@@ -24,7 +25,11 @@ loadSnapshotSources()
   .then((snapshotSources) => snapshotSources.forEach(addLayer))
   .catch((error) => console.error('Could not load snapshot layers', error));
 
-globe.loadBorders().catch((error) => console.error('Could not load country borders', error));
+const countryLabels = new CountryLabels(document.getElementById('labels'), globe.camera);
+globe.onFrame(() => countryLabels.update());
+globe.loadMap()
+  .then((countries) => countryLabels.setCountries(countries))
+  .catch((error) => console.error('Could not load the map', error));
 globe.start();
 
 setInterval(updateClock, 1000);

@@ -390,3 +390,32 @@ body {
 #events-view:not([hidden]) ~ #zoom-controls {
   display: none;
 }
+
+/* Country names over the globe; positioned by labels.js every frame. */
+#labels {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.country-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  color: rgba(230, 237, 247, 0.78);
+  font-size: 0.68rem;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  text-shadow: 0 0 3px #02040a, 0 0 6px #02040a;
+  will-change: transform, opacity;
+}
+
+.country-label.large {
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+}
+
+.country-label[hidden] {
+  display: none;
+}

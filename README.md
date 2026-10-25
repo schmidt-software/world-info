@@ -24,7 +24,8 @@ Live: <https://schmidt-software.github.io/world-info/>
 - Zoom from the whole globe down to about 1 km above the ground with the mouse
   wheel, trackpad or touch pinch, the + and - keys or the zoom buttons; the
   point under the pointer stays in place
-- Hover a marker for details, click it to open the source page
+- Hover a marker for details, click it to open the source page; on touch
+  screens the first tap shows the details and a second tap opens the source
 - "List all events" in the panel opens a searchable list of every loaded event,
   filterable by layer, with a link to each event's source page and a "Map"
   button that flies the globe to the event; clicking a layer in the panel opens

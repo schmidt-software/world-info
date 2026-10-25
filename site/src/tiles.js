@@ -19,11 +19,13 @@ const THRESHOLDS = Array.from({ length: 30 }, (_, level) => (26.5 / Math.SQRT2) 
 const CURVATURE_DEGREES = 1;
 // Tiles fade in over the zoom level after their minimum zoom.
 const FADE_LEVELS = 1;
-// Tile requests follow the camera, but sparingly: while it moves within one
-// zoom level at most every POV_INTERVAL_MS, and after a level change only
-// once it has rested for SETTLE_MS. Flying or zooming through levels would
+// Tile requests follow the camera, but sparingly: within one zoom level at
+// most every POV_INTERVAL_MS, also while the globe turns; a new level
+// (including the first one after a layer appears) only once the altitude
+// has been stable for SETTLE_MS. Flying or zooming through levels would
 // otherwise request every intermediate level, which the OSM tile policy
-// does not allow (only tiles actually viewed may be fetched).
+// does not allow (only tiles actually viewed may be fetched). Rotation does
+// not delay a new level, so the auto-rotating globe still gets its tiles.
 const POV_INTERVAL_MS = 300;
 const SETTLE_MS = 250;
 
@@ -67,9 +69,9 @@ export class TileLayer {
     this.provider = provider;
     this.opacity = { value: 0 };
     this.lastPov = 0;
-    this.lastMove = 0;
+    this.lastAltitudeChange = 0;
+    this.previousAltitude = 0;
     this.lastCamera = new THREE.Vector3();
-    this.previousCamera = new THREE.Vector3();
     this.requestedLevel = -1;
 
     this.tiles = new SlippyMapGlobe(1, {
@@ -158,22 +160,18 @@ export class TileLayer {
     if (!visible) return;
 
     // OrbitControls recomputes the camera position every frame, which leaves
-    // rounding noise even at rest; movement is measured against a tolerance
-    // that scales with the altitude.
+    // rounding noise even at rest; changes are measured against tolerances
+    // that scale with the altitude.
     const altitude = camera.position.length() - 1;
-    const tolerance = altitude * 1e-4;
-    if (camera.position.distanceTo(this.previousCamera) > tolerance) {
-      this.previousCamera.copy(camera.position);
-      this.lastMove = time;
+    if (Math.abs(altitude - this.previousAltitude) > altitude * 1e-3) {
+      this.previousAltitude = altitude;
+      this.lastAltitudeChange = time;
     }
-    if (camera.position.distanceTo(this.lastCamera) <= tolerance) return;
+    if (camera.position.distanceTo(this.lastCamera) <= altitude * 1e-4) return;
     const level = levelFor(altitude, this.provider);
-    // A layer that has just appeared asks at once; the auto-rotating globe
-    // would otherwise never rest long enough.
-    const first = this.requestedLevel === -1;
     const sameLevel = level === this.requestedLevel;
-    const resting = time - this.lastMove >= SETTLE_MS;
-    if (first || (sameLevel && time - this.lastPov >= POV_INTERVAL_MS) || resting) {
+    const altitudeStable = time - this.lastAltitudeChange >= SETTLE_MS;
+    if ((sameLevel && time - this.lastPov >= POV_INTERVAL_MS) || (!sameLevel && altitudeStable)) {
       this.tiles.updatePov(camera);
       this.lastCamera.copy(camera.position);
       this.lastPov = time;
